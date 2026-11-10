@@ -5,7 +5,6 @@ Enterprise-grade, responsive React Single-Page Application (SPA) designed for th
 ![UI Preview](https://img.shields.io/badge/React-18-blue?logo=react)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8?logo=tailwind-css)
 ![Vite](https://img.shields.io/badge/Vite-5.4-646cff?logo=vite)
-![JWT & Redis Security](https://img.shields.io/badge/Security-JWT%20%2B%20Redis-emerald)
 
 ---
 
