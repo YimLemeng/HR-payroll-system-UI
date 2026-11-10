@@ -673,7 +673,7 @@ const LeavesPage = () => {
                   <div className="pt-2 border-t border-slate-800/80">
                     <span className="text-slate-400 block mb-1">{t('reason')}:</span>
                     <p className="text-slate-300 italic bg-[#0d1527] p-2 rounded-lg border border-slate-800">
-                      "{cancelModalLeave.reason}"
+                      &ldquo;{cancelModalLeave.reason}&rdquo;
                     </p>
                   </div>
                 )}
