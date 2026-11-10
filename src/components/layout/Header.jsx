@@ -7,7 +7,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Search,
-  Bell,
 } from 'lucide-react';
 
 const Header = ({ isCollapsed, setIsCollapsed }) => {
@@ -53,18 +52,9 @@ const Header = ({ isCollapsed, setIsCollapsed }) => {
         </div>
       </div>
 
-      {/* Right Controls: Language Switcher, Notifications, User Profile */}
+      {/* Right Controls: Language Switcher, User Profile */}
       <div className="flex items-center gap-3 shrink-0">
         <LanguageSwitcher />
-
-        {/* Notification Bell */}
-        <button
-          className="relative p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
-          title="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-[#080d1a]"></span>
-        </button>
 
         <div className="h-6 w-px bg-slate-800 hidden sm:block"></div>
 

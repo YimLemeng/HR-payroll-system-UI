@@ -39,7 +39,7 @@ const A4PayrollDocument = ({
   return (
     <div
       id="a4-payroll-printable-document"
-      className="bg-white text-slate-900 font-sans p-8 sm:p-10 w-full max-w-[210mm] mx-auto shadow-2xl rounded-xl border border-slate-200 text-xs select-text"
+      className="bg-white text-slate-900 font-sans p-5 sm:p-7 w-full max-w-[210mm] mx-auto shadow-2xl rounded-xl border border-slate-200 text-xs select-text box-border"
       style={{ minHeight: '297mm' }}
     >
       {/* Top Accent Strip */}
@@ -142,21 +142,21 @@ const A4PayrollDocument = ({
           {lang === 'km' ? 'តារាងបើកប្រាក់បៀវត្សលម្អិតតាមបុគ្គលិក' : 'Employee Payroll Disbursal Schedule'}
         </h3>
 
-        <div className="border border-slate-200 rounded-lg overflow-hidden">
-          <table className="w-full text-left border-collapse text-[11px]">
-            <thead className="bg-slate-100 font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[10px]">
+        <div className="border border-slate-200 rounded-lg overflow-x-auto">
+          <table className="w-full text-left border-collapse text-[10px]">
+            <thead className="bg-slate-100 font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-200 text-[9.5px]">
               <tr>
-                <th className="py-2 px-2 text-center">#</th>
-                <th className="py-2 px-2.5">{lang === 'km' ? 'កូដ' : 'Code'}</th>
-                <th className="py-2 px-3">{lang === 'km' ? 'ឈ្មោះបុគ្គលិក' : 'Employee Name'}</th>
-                <th className="py-2 px-3">{lang === 'km' ? 'នាយកដ្ឋាន' : 'Department'}</th>
-                <th className="py-2 px-2.5 text-right">{lang === 'km' ? 'ប្រាក់ខែគោល' : 'Basic'}</th>
-                <th className="py-2 px-2 text-right">{lang === 'km' ? 'ឧបត្ថម្ភ' : 'Allow.'}</th>
-                <th className="py-2 px-2 text-right">{lang === 'km' ? 'ថែមម៉ោង' : 'OT'}</th>
-                <th className="py-2 px-2 text-right">{lang === 'km' ? 'កាត់ទុក' : 'Deduct'}</th>
-                <th className="py-2 px-2 text-right">{lang === 'km' ? 'ពន្ធ' : 'Tax'}</th>
-                <th className="py-2 px-2.5 text-right font-bold text-slate-900">{lang === 'km' ? 'ប្រាក់សុទ្ធ' : 'Net Pay'}</th>
-                <th className="py-2 px-2 text-center">{lang === 'km' ? 'ស្ថានភាព' : 'Status'}</th>
+                <th className="py-2 px-1 text-center w-6">#</th>
+                <th className="py-2 px-1.5 w-14 font-mono">{lang === 'km' ? 'កូដ' : 'Code'}</th>
+                <th className="py-2 px-2">{lang === 'km' ? 'ឈ្មោះបុគ្គលិក' : 'Employee Name'}</th>
+                <th className="py-2 px-2">{lang === 'km' ? 'នាយកដ្ឋាន' : 'Department'}</th>
+                <th className="py-2 px-1.5 text-right w-16">{lang === 'km' ? 'ប្រាក់ខែគោល' : 'Basic'}</th>
+                <th className="py-2 px-1 text-right w-14">{lang === 'km' ? 'ឧបត្ថម្ភ' : 'Allow.'}</th>
+                <th className="py-2 px-1 text-right w-12">{lang === 'km' ? 'ថែមម៉ោង' : 'OT'}</th>
+                <th className="py-2 px-1.5 text-right w-16 text-rose-600">{lang === 'km' ? 'កាត់ទុក' : 'Deduct'}</th>
+                <th className="py-2 px-1.5 text-right w-16 text-rose-600">{lang === 'km' ? 'ពន្ធ' : 'Tax'}</th>
+                <th className="py-2 px-2 text-right w-20 font-bold text-slate-900">{lang === 'km' ? 'ប្រាក់សុទ្ធ' : 'Net Pay'}</th>
+                <th className="py-2 px-1.5 text-center w-20">{lang === 'km' ? 'ស្ថានភាព' : 'Status'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-800">
@@ -169,25 +169,25 @@ const A4PayrollDocument = ({
               ) : (
                 payrolls.map((p, idx) => (
                   <tr key={p.id || idx} className="hover:bg-slate-50/70">
-                    <td className="py-2 px-2 text-center text-slate-400 font-mono">{idx + 1}</td>
-                    <td className="py-2 px-2.5 font-mono font-semibold text-blue-700">{p.employeeCode}</td>
-                    <td className="py-2 px-3 font-semibold text-slate-900">{p.employeeName}</td>
-                    <td className="py-2 px-3 text-slate-600">{p.departmentName || '—'}</td>
-                    <td className="py-2 px-2.5 text-right font-mono">${Number(p.basicSalary || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2 text-right font-mono text-slate-600">${Number(p.allowances || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2 text-right font-mono text-slate-600">${Number(p.overtimePay || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2 text-right font-mono text-rose-600">-${Number(p.deductions || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2 text-right font-mono text-rose-600">-${Number(p.tax || 0).toFixed(2)}</td>
-                    <td className="py-2 px-2.5 text-right font-mono font-bold text-emerald-700 bg-emerald-50/50">
-                      ${Number(p.netSalary || 0).toFixed(2)}
+                    <td className="py-1.5 px-1 text-center text-slate-400 font-mono text-[9.5px]">{idx + 1}</td>
+                    <td className="py-1.5 px-1.5 font-mono font-semibold text-blue-700 whitespace-nowrap">{p.employeeCode}</td>
+                    <td className="py-1.5 px-2 font-semibold text-slate-900 whitespace-nowrap">{p.employeeName}</td>
+                    <td className="py-1.5 px-2 text-slate-600 whitespace-nowrap">{p.departmentName || '—'}</td>
+                    <td className="py-1.5 px-1.5 text-right font-mono">${Number(p.basicSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-1.5 px-1 text-right font-mono text-slate-600">${Number(p.allowances || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-1.5 px-1 text-right font-mono text-slate-600">${Number(p.overtimePay || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-1.5 px-1.5 text-right font-mono text-rose-600">-${Number(p.deductions || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-1.5 px-1.5 text-right font-mono text-rose-600">-${Number(p.tax || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td className="py-1.5 px-2 text-right font-mono font-bold text-emerald-800 bg-emerald-50/50 whitespace-nowrap">
+                      ${Number(p.netSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td className="py-2 px-2 text-center">
-                      <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${
+                    <td className="py-1.5 px-1.5 text-center whitespace-nowrap">
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[8.5px] font-bold tracking-tight uppercase border ${
                         p.status === 'PAID'
-                          ? 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                           : p.status === 'APPROVED'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-amber-50 text-amber-700 border-amber-300'
+                          : 'bg-blue-50 text-blue-700 border-blue-300'
                       }`}>
                         {p.status}
                       </span>
@@ -197,20 +197,20 @@ const A4PayrollDocument = ({
               )}
             </tbody>
             {payrolls.length > 0 && (
-              <tfoot className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300">
+              <tfoot className="bg-slate-100 font-bold text-slate-900 border-t-2 border-slate-300 text-[9.5px]">
                 <tr>
-                  <td colSpan={4} className="py-2.5 px-3 uppercase tracking-wider text-right">
+                  <td colSpan={4} className="py-2 px-2 uppercase tracking-wider text-right font-black">
                     {lang === 'km' ? 'សរុបរួម (Grand Total):' : 'Grand Total:'}
                   </td>
-                  <td className="py-2.5 px-2.5 text-right font-mono">${totalBasic.toFixed(2)}</td>
-                  <td className="py-2.5 px-2 text-right font-mono">${totalAllowances.toFixed(2)}</td>
-                  <td className="py-2.5 px-2 text-right font-mono">${totalOvertime.toFixed(2)}</td>
-                  <td className="py-2.5 px-2 text-right font-mono text-rose-600">-${totalDeductions.toFixed(2)}</td>
-                  <td className="py-2.5 px-2 text-right font-mono text-rose-600">-${totalTax.toFixed(2)}</td>
-                  <td className="py-2.5 px-2.5 text-right font-mono text-emerald-800 bg-emerald-100/60 font-black">
-                    ${totalNet.toFixed(2)}
+                  <td className="py-2 px-1.5 text-right font-mono font-bold">${totalBasic.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2 px-1 text-right font-mono font-bold">${totalAllowances.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2 px-1 text-right font-mono font-bold">${totalOvertime.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2 px-1.5 text-right font-mono font-bold text-rose-600">-${totalDeductions.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2 px-1.5 text-right font-mono font-bold text-rose-600">-${totalTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                  <td className="py-2 px-2 text-right font-mono text-emerald-800 bg-emerald-100/70 font-black whitespace-nowrap">
+                    ${totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </td>
-                  <td></td>
+                  <td className="py-2 px-1.5"></td>
                 </tr>
               </tfoot>
             )}

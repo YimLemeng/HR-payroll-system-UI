@@ -297,7 +297,7 @@ const PayrollPage = () => {
           <style>
             @page {
               size: A4 portrait;
-              margin: 10mm 12mm;
+              margin: 8mm 6mm;
             }
             * {
               box-sizing: border-box;
@@ -310,16 +310,26 @@ const PayrollPage = () => {
               background: #ffffff !important;
               color: #0f172a !important;
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              width: 100%;
+            }
+            #a4-payroll-printable-document {
+              padding: 2mm 2mm !important;
+              margin: 0 auto !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              border: none !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
             }
             table {
-              width: 100%;
-              border-collapse: collapse;
+              width: 100% !important;
+              border-collapse: collapse !important;
             }
           </style>
           ${styles}
         </head>
         <body style="background: #ffffff; color: #0f172a; padding: 0; margin: 0;">
-          <div style="width: 100%; max-width: 210mm; margin: 0 auto; padding: 0;">
+          <div style="width: 100%; max-width: 100%; margin: 0 auto; padding: 0;">
             ${docEl.innerHTML}
           </div>
         </body>
