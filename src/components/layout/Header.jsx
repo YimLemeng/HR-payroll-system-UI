@@ -6,7 +6,6 @@ import BrandLogo from '../common/BrandLogo';
 import {
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
 } from 'lucide-react';
 
 const Header = ({ isCollapsed, setIsCollapsed }) => {
@@ -39,16 +38,6 @@ const Header = ({ isCollapsed, setIsCollapsed }) => {
               HR & PAYROLL
             </span>
           </div>
-        </div>
-
-        {/* Global Search Bar */}
-        <div className="relative w-64 lg:w-80 hidden md:block ml-4">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            placeholder={t('searchPlaceholder')}
-            className="w-full pl-9 pr-4 py-1.5 bg-[#070a13] text-slate-200 placeholder:text-slate-500 text-xs rounded-xl border border-slate-700/70 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
-          />
         </div>
       </div>
 
