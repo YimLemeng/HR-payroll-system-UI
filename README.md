@@ -2,9 +2,29 @@
 
 Enterprise-grade, responsive React Single-Page Application (SPA) designed for the **Spring Boot & PostgreSQL HR & Payroll Management System**.
 
-![UI Preview](https://img.shields.io/badge/React-18-blue?logo=react)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8?logo=tailwind-css)
-![Vite](https://img.shields.io/badge/Vite-5.4-646cff?logo=vite)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Preview-success?logo=cloudflare)](https://hr-payroll.yimlemeng.workers.dev/)
+[![React](https://img.shields.io/badge/React-18.3-blue?logo=react)](https://react.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-6.4-646cff?logo=vite)](https://vite.dev/)
+
+---
+
+## 🌐 Live Demo & Credentials
+
+Experience the live application deployed on Cloudflare Workers / Pages:
+
+🔗 **Live Demo Website**: [https://hr-payroll.yimlemeng.workers.dev](https://hr-payroll.yimlemeng.workers.dev/)  
+⚙️ **Backend REST API Repository**: [https://github.com/YimLemeng/HR-payroll-system](https://github.com/YimLemeng/HR-payroll-system)
+
+### 🔑 Demo Accounts
+
+| Role | Username | Password | Access Scope |
+| :--- | :--- | :--- | :--- |
+| **System Administrator** | `admin` | `Admin@123` | Full access (User management, reports, employee management, payroll approval) |
+| **HR Specialist** | `sok_hr` | `Sokhr@123` | HR operations (Employees, departments, attendance, leaves, payroll generation) |
+
+> [!TIP]
+> Both accounts are pre-configured to let you explore the Role-Based Access Control (RBAC) and feature sets of the system.
 
 ---
 
@@ -32,6 +52,18 @@ Enterprise-grade, responsive React Single-Page Application (SPA) designed for th
 
 ---
 
+## 🛠️ Tech Stack
+
+- **Framework**: React 18 (SPA)
+- **Build Tool**: Vite 6
+- **Routing**: React Router v7
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **HTTP Client**: Axios with centralized error handling & token injection
+- **Deployment**: Cloudflare Workers / Pages
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -51,10 +83,11 @@ Enterprise-grade, responsive React Single-Page Application (SPA) designed for th
    npm install
    ```
 
-3. Setup environment variables (optional, defaults to `http://localhost:8080/api`):
+3. Setup environment variables:
    ```bash
    cp .env.example .env
    ```
+   *(By default, `.env` connects to your local backend at `http://localhost:8080/api`)*
 
 4. Start development server:
    ```bash
