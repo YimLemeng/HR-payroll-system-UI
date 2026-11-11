@@ -13,18 +13,10 @@ Enterprise-grade, responsive React Single-Page Application (SPA) designed for th
 
 Experience the live application deployed on Cloudflare Workers / Pages:
 
-🔗 **Live Demo Website**: [https://hr-payroll.yimlemeng.workers.dev](https://hr-payroll.yimlemeng.workers.dev/)  
-⚙️ **Backend REST API Repository**: [https://github.com/YimLemeng/HR-payroll-system](https://github.com/YimLemeng/HR-payroll-system)
+🔗 **Live Demo Website**: [https://hr-payroll.yimlemeng.workers.dev](https://hr-payroll.yimlemeng.workers.dev)  
+⚙️ **Backend REST API Repository**: [https://github.com/YimLemeng/HR-payroll-system](https://github.com/YimLemeng/HR-payroll-system)  
 
-### 🔑 Demo Accounts
-
-| Role | Username | Password | Access Scope |
-| :--- | :--- | :--- | :--- |
-| **System Administrator** | `admin` | `Admin@123` | Full access (User management, reports, employee management, payroll approval) |
-| **HR Specialist** | `sok_hr` | `Sokhr@123` | HR operations (Employees, departments, attendance, leaves, payroll generation) |
-
-> [!TIP]
-> Both accounts are pre-configured to let you explore the Role-Based Access Control (RBAC) and feature sets of the system.
+> 👤 **Test Accounts**: `admin` / `Admin@123` (Admin) • `sok_hr` / `Sokhr@123` (HR)
 
 ---
 
