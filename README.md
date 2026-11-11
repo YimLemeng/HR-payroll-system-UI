@@ -2,7 +2,6 @@
 
 Enterprise-grade, responsive React Single-Page Application (SPA) designed for the **Spring Boot & PostgreSQL HR & Payroll Management System**.
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live%20Preview-success?logo=cloudflare)](https://hr-payroll.yimlemeng.workers.dev/)
 [![React](https://img.shields.io/badge/React-18.3-blue?logo=react)](https://react.dev/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-38bdf8?logo=tailwind-css)](https://tailwindcss.com/)
 [![Vite](https://img.shields.io/badge/Vite-6.4-646cff?logo=vite)](https://vite.dev/)
