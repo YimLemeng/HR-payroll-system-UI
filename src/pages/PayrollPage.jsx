@@ -297,7 +297,7 @@ const PayrollPage = () => {
           <style>
             @page {
               size: A4 portrait;
-              margin: 8mm 6mm;
+              margin: 6mm 4mm;
             }
             * {
               box-sizing: border-box;
@@ -321,8 +321,12 @@ const PayrollPage = () => {
               box-shadow: none !important;
               border-radius: 0 !important;
             }
+            .overflow-x-auto {
+              overflow: visible !important;
+            }
             table {
               width: 100% !important;
+              max-width: 100% !important;
               border-collapse: collapse !important;
             }
             tr {
