@@ -313,7 +313,7 @@ const PayrollPage = () => {
               width: 100%;
             }
             #a4-payroll-printable-document {
-              padding: 2mm 2mm !important;
+              padding: 0 !important;
               margin: 0 auto !important;
               width: 100% !important;
               max-width: 100% !important;
@@ -325,12 +325,23 @@ const PayrollPage = () => {
               width: 100% !important;
               border-collapse: collapse !important;
             }
+            tr {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+            tfoot {
+              display: table-row-group !important;
+            }
+            .break-inside-avoid {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
           </style>
           ${styles}
         </head>
         <body style="background: #ffffff; color: #0f172a; padding: 0; margin: 0;">
           <div style="width: 100%; max-width: 100%; margin: 0 auto; padding: 0;">
-            ${docEl.innerHTML}
+            ${docEl.outerHTML}
           </div>
         </body>
       </html>
@@ -752,7 +763,7 @@ const PayrollPage = () => {
               </div>
 
               {/* Printable Body Content (Scrollable preview inside modal) */}
-              <div className="overflow-y-auto p-4 sm:p-8 bg-slate-900/60 flex justify-center">
+              <div className="overflow-y-auto p-4 sm:p-8 bg-slate-900/60 flex flex-col items-center">
                 <A4PayrollDocument
                   payrolls={payrolls}
                   summary={summary}

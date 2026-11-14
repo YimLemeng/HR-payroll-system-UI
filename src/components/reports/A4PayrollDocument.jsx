@@ -39,8 +39,7 @@ const A4PayrollDocument = ({
   return (
     <div
       id="a4-payroll-printable-document"
-      className="bg-white text-slate-900 font-sans p-5 sm:p-7 w-full max-w-[210mm] mx-auto shadow-2xl rounded-xl border border-slate-200 text-xs select-text box-border"
-      style={{ minHeight: '297mm' }}
+      className="bg-white text-slate-900 font-sans p-6 sm:p-8 w-full max-w-[210mm] mx-auto shadow-2xl rounded-xl border border-slate-200 text-xs select-text box-border"
     >
       {/* Top Accent Strip */}
       <div className="h-1.5 w-full bg-gradient-to-r from-blue-700 via-indigo-600 to-blue-500 rounded-t-sm -mt-4 sm:-mt-6 mb-6" />
@@ -219,7 +218,7 @@ const A4PayrollDocument = ({
       </div>
 
       {/* Corporate Certification Footer Note */}
-      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-[11px] text-slate-600 mb-8 leading-relaxed">
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-[11px] text-slate-600 mb-6 leading-relaxed break-inside-avoid">
         <p>
           <strong>{lang === 'km' ? 'សេចក្តីបញ្ជាក់' : 'Audit Certification'}:</strong>{' '}
           {lang === 'km'
@@ -229,7 +228,7 @@ const A4PayrollDocument = ({
       </div>
 
       {/* Three Formal Corporate Signatures Block */}
-      <div className="grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-center">
+      <div className="grid grid-cols-3 gap-6 pt-4 border-t border-slate-200 text-center break-inside-avoid">
         {/* Signer 1: Prepared By */}
         <div>
           <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-0.5">
@@ -238,7 +237,7 @@ const A4PayrollDocument = ({
           <div className="text-[10px] text-slate-500">
             {lang === 'km' ? 'មន្ត្រីធនធានមនុស្ស' : 'HR Officer'}
           </div>
-          <div className="h-20 flex items-end justify-center pb-1">
+          <div className="h-16 flex items-end justify-center pb-1">
             <span className="text-[11px] text-slate-400 italic">
               {lang === 'km' ? '(ហត្ថលេខា & ឈ្មោះ)' : '(Signature & Name)'}
             </span>
@@ -256,7 +255,7 @@ const A4PayrollDocument = ({
           <div className="text-[10px] text-slate-500">
             {lang === 'km' ? 'ប្រធានគណនេយ្យ និងហិរញ្ញវត្ថុ' : 'Finance & Accounting Lead'}
           </div>
-          <div className="h-20 flex items-end justify-center pb-1">
+          <div className="h-16 flex items-end justify-center pb-1">
             <span className="text-[11px] text-slate-400 italic">
               {lang === 'km' ? '(ហត្ថលេខា & ឈ្មោះ)' : '(Signature & Name)'}
             </span>
@@ -274,7 +273,7 @@ const A4PayrollDocument = ({
           <div className="text-[10px] text-slate-500">
             {lang === 'km' ? 'អគ្គនាយកប្រតិបត្តិ' : 'Managing Director'}
           </div>
-          <div className="h-20 flex items-end justify-center pb-1">
+          <div className="h-16 flex items-end justify-center pb-1">
             <span className="text-[11px] text-slate-400 italic">
               {lang === 'km' ? '(ហត្ថលេខា & ត្រាផ្លូវការ)' : '(Signature & Official Stamp)'}
             </span>
