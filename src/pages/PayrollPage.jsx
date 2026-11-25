@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import { useAuth } from '../context/AuthContext';
 import axiosClient from '../api/axiosClient';
+import { useTableSort } from '../utils/useTableSort';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
 import A4PayrollDocument from '../components/reports/A4PayrollDocument';
@@ -21,7 +21,8 @@ import {
   Building2,
   X,
   Printer,
-  Download
+  Download,
+  ArrowUpDown
 } from 'lucide-react';
 
 const MONTH_NAMES = [
@@ -47,7 +48,6 @@ const PAYROLL_STATUSES = [
 
 const PayrollPage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
   const { user } = useAuth();
 
   const now = new Date();
@@ -59,6 +59,18 @@ const PayrollPage = () => {
   const [summary, setSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [feedbackMessage, setFeedbackMessage] = useState(null);
+
+  const { sortConfig, handleSort, sortedItems: sortedPayrolls } = useTableSort(payrolls, {
+    employeeName: (p) => p.employeeName || '',
+    basicSalary: (p) => Number(p.basicSalary || 0),
+    allowances: (p) => Number(p.allowances || 0),
+    overtimePay: (p) => Number(p.overtimePay || 0),
+    bonus: (p) => Number(p.bonus || 0),
+    deductions: (p) => Number(p.deductions || 0),
+    tax: (p) => Number(p.tax || 0),
+    netSalary: (p) => Number(p.netSalary || 0),
+    status: (p) => p.status || '',
+  });
 
   // Calculation Modal State
   const [isCalcModalOpen, setIsCalcModalOpen] = useState(false);
@@ -114,6 +126,7 @@ const PayrollPage = () => {
     } catch (err) {
       console.error('Failed to load payroll data:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, [selectedMonth, selectedYear, selectedStatus]);
@@ -133,81 +146,61 @@ const PayrollPage = () => {
 
   const handleSubmitCalculate = async (e) => {
     e.preventDefault();
-    await withLoading(
-      lang === 'km'
-        ? `កំពុងគណនាប្រាក់ខែស្វ័យប្រវត្តសម្រាប់ខែ ${calcForm.month}/${calcForm.year}...`
-        : `Computing monthly payroll for ${calcForm.month}/${calcForm.year}...`,
-      async () => {
-        try {
-          const queryParams = new URLSearchParams({
-            month: String(calcForm.month),
-            year: String(calcForm.year)
-          });
-          if (calcForm.departmentId) {
-            queryParams.append('departmentId', calcForm.departmentId);
-          }
-          const res = await axiosClient.post(
-            `/payroll/calculate?${queryParams.toString()}`
-          );
-          const count = Array.isArray(res.data) ? res.data.length : 0;
-          setIsCalcModalOpen(false);
-          setSelectedMonth(Number(calcForm.month));
-          setSelectedYear(Number(calcForm.year));
-          setFeedbackMessage(
-            lang === 'km'
-              ? `បានគណនាប្រាក់ខែចំនួន ${count} នាក់ដោយជោគជ័យ សម្រាប់ខែ ${calcForm.month}/${calcForm.year}!`
-              : `Successfully calculated payroll for ${count} employees (${calcForm.month}/${calcForm.year})!`
-          );
-          fetchPayrollData(true);
-          setTimeout(() => setFeedbackMessage(null), 5000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to calculate payroll');
-        }
-      },
-      700
-    );
+    try {
+      const queryParams = new URLSearchParams({
+        month: String(calcForm.month),
+        year: String(calcForm.year)
+      });
+      if (calcForm.departmentId) {
+        queryParams.append('departmentId', calcForm.departmentId);
+      }
+      const res = await axiosClient.post(
+        `/payroll/calculate?${queryParams.toString()}`
+      );
+      const count = Array.isArray(res.data) ? res.data.length : 0;
+      setIsCalcModalOpen(false);
+      setSelectedMonth(Number(calcForm.month));
+      setSelectedYear(Number(calcForm.year));
+      setFeedbackMessage(
+        lang === 'km'
+          ? `បានគណនាប្រាក់ខែចំនួន ${count} នាក់ដោយជោគជ័យ សម្រាប់ខែ ${calcForm.month}/${calcForm.year}!`
+          : `Successfully calculated payroll for ${count} employees (${calcForm.month}/${calcForm.year})!`
+      );
+      fetchPayrollData(true);
+      setTimeout(() => setFeedbackMessage(null), 5000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to calculate payroll');
+    }
   };
 
   const handleApprovePayroll = async (id, employeeName) => {
-    await withLoading(
-      lang === 'km' ? `កំពុងអនុម័តប្រាក់ខែ ${employeeName}...` : `Approving payroll for ${employeeName}...`,
-      async () => {
-        try {
-          await axiosClient.patch(`/payroll/${id}/approve`);
-          setFeedbackMessage(
-            lang === 'km'
-              ? `បានអនុម័តប្រាក់ខែ ${employeeName} ដោយជោគជ័យ!`
-              : `Payroll approved for ${employeeName}!`
-          );
-          fetchPayrollData(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to approve payroll');
-        }
-      },
-      500
-    );
+    try {
+      await axiosClient.patch(`/payroll/${id}/approve`);
+      setFeedbackMessage(
+        lang === 'km'
+          ? `បានអនុម័តប្រាក់ខែ ${employeeName} ដោយជោគជ័យ!`
+          : `Payroll approved for ${employeeName}!`
+      );
+      fetchPayrollData(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to approve payroll');
+    }
   };
 
   const handleMarkPaid = async (id, employeeName) => {
-    await withLoading(
-      lang === 'km' ? `កំពុងកត់ត្រាការបើកប្រាក់ ${employeeName}...` : `Marking payment as disbursed for ${employeeName}...`,
-      async () => {
-        try {
-          await axiosClient.patch(`/payroll/${id}/mark-paid`);
-          setFeedbackMessage(
-            lang === 'km'
-              ? `បានបើកប្រាក់បៀវត្សជូន ${employeeName} រួចរាល់!`
-              : `Disbursement completed for ${employeeName}!`
-          );
-          fetchPayrollData(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to mark as paid');
-        }
-      },
-      500
-    );
+    try {
+      await axiosClient.patch(`/payroll/${id}/mark-paid`);
+      setFeedbackMessage(
+        lang === 'km'
+          ? `បានបើកប្រាក់បៀវត្សជូន ${employeeName} រួចរាល់!`
+          : `Disbursement completed for ${employeeName}!`
+      );
+      fetchPayrollData(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to mark as paid');
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -309,7 +302,7 @@ const PayrollPage = () => {
               padding: 0;
               background: #ffffff !important;
               color: #0f172a !important;
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              font-family: "Inter", "Khmer OS Battambang", "Battambang", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
               width: 100%;
             }
             #a4-payroll-printable-document {
@@ -364,27 +357,28 @@ const PayrollPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/30 shadow-md shadow-blue-500/10">
-            <CircleDollarSign className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {t('payrollTitle')}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {t('payrollSubtitle')} ({selectedMonth}/{selectedYear})
-            </p>
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('payrollTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ប្រាក់បៀវត្ស & របាយការណ៍' : 'Payroll & Reports'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">
+              {t('navPayroll')} ({selectedMonth}/{selectedYear})
+            </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={Download}
             onClick={() => setIsExportModalOpen(true)}
           >
@@ -392,7 +386,7 @@ const PayrollPage = () => {
           </Button>
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchPayrollData()}
@@ -401,7 +395,7 @@ const PayrollPage = () => {
           </Button>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={Calculator}
             onClick={handleOpenCalcModal}
           >
@@ -412,93 +406,111 @@ const PayrollPage = () => {
 
       {/* Success Notification */}
       {feedbackMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-medium animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-medium animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{feedbackMessage}</span>
         </div>
       )}
 
-      {/* Financial Summary Cards */}
+      {/* Financial Summary Cards (Admindek Style) */}
       {summary && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4">
-            <span className="text-xs text-slate-400 block mb-1">{t('grossSalary')}</span>
-            <span className="text-xl font-mono font-bold text-white">
-              ${Number(summary.totalGrossSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-start justify-between">
+            <div>
+              <span className="text-xs font-medium text-slate-500 block">{t('grossSalary')}</span>
+              <span className="text-xl font-bold text-slate-900 mt-1 block">
+                ${Number(summary.totalGrossSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <DollarSign className="w-4 h-4" />
+            </div>
           </div>
 
-          <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4">
-            <span className="text-xs text-slate-400 block mb-1">{t('netSalary')}</span>
-            <span className="text-xl font-mono font-bold text-emerald-400">
-              ${Number(summary.totalNetSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-start justify-between">
+            <div>
+              <span className="text-xs font-medium text-slate-500 block">{t('netSalary')}</span>
+              <span className="text-xl font-bold text-slate-900 mt-1 block">
+                ${Number(summary.totalNetSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <CreditCard className="w-4 h-4" />
+            </div>
           </div>
 
-          <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4">
-            <span className="text-xs text-slate-400 block mb-1">{t('tax')} & {t('deductions')}</span>
-            <span className="text-xl font-mono font-bold text-rose-400">
-              ${Number((summary.totalTax || 0) + (summary.totalDeductions || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-start justify-between">
+            <div>
+              <span className="text-xs font-medium text-slate-500 block">{t('tax')} & {t('deductions')}</span>
+              <span className="text-xl font-bold text-slate-900 mt-1 block">
+                ${Number((summary.totalTax || 0) + (summary.totalDeductions || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <Percent className="w-4 h-4" />
+            </div>
           </div>
 
-          <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4">
-            <span className="text-xs text-slate-400 block mb-1">{t('allowances')} & {t('bonus')}</span>
-            <span className="text-xl font-mono font-bold text-blue-400">
-              ${Number((summary.totalAllowances || 0) + (summary.totalBonus || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </span>
+          <div className="bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-start justify-between">
+            <div>
+              <span className="text-xs font-medium text-slate-500 block">{t('allowances')} & {t('bonus')}</span>
+              <span className="text-xl font-bold text-slate-900 mt-1 block">
+                ${Number((summary.totalAllowances || 0) + (summary.totalBonus || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <CircleDollarSign className="w-4 h-4" />
+            </div>
           </div>
         </div>
       )}
 
-      {/* Period & Status Filter Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-2.5 text-sm text-slate-200">
-          <Calendar className="w-5 h-5 text-blue-400" />
-          <span className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t('payrollPeriod')}:</span>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
-          >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {lang === 'km' ? `ខែ ${m}` : `Month ${m}`}
-              </option>
-            ))}
-          </select>
+      {/* Unified White Table Card with Integrated Filter Controls */}
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+        <div className="p-4 sm:px-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
+          <div className="flex items-center gap-2.5 text-xs sm:text-sm text-slate-700">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <span className="font-medium text-xs text-slate-500">{t('payrollPeriod')}:</span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>
+                  {lang === 'km' ? `ខែ ${m}` : `Month ${m}`}
+                </option>
+              ))}
+            </select>
 
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
-          >
-            {[2024, 2025, 2026, 2027].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              {[2024, 2025, 2026, 2027].map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              <option value="">{t('filterStatus')}</option>
+              {PAYROLL_STATUSES.map((st) => (
+                <option key={st.value} value={st.value}>
+                  {lang === 'km' ? st.labelKm : st.labelEn}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-slate-300 focus:outline-none focus:border-blue-500 transition-colors"
-          >
-            <option value="">{t('filterStatus')}</option>
-            {PAYROLL_STATUSES.map((st) => (
-              <option key={st.value} value={st.value}>
-                {lang === 'km' ? st.labelKm : st.labelEn}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Payroll Table */}
-      <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
         {isLoading ? (
           <div className="py-24 text-center space-y-3">
             <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
@@ -528,73 +540,90 @@ const PayrollPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-[#080d1a] text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
                 <tr>
-                  <th className="py-3.5 px-4">{t('colEmployee')}</th>
-                  <th className="py-3.5 px-4">{t('basicSalary')}</th>
-                  <th className="py-3.5 px-4">{t('allowances')}</th>
-                  <th className="py-3.5 px-4">{t('overtimePay')}</th>
-                  <th className="py-3.5 px-4">{t('bonus')}</th>
-                  <th className="py-3.5 px-4">{t('deductions')}</th>
-                  <th className="py-3.5 px-4">{t('tax')}</th>
-                  <th className="py-3.5 px-4">{t('netSalary')}</th>
-                  <th className="py-3.5 px-4">{t('colStatus')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('actions')}</th>
+                  {[
+                    { key: 'employeeName', label: t('colEmployee') },
+                    { key: 'basicSalary', label: t('basicSalary') },
+                    { key: 'allowances', label: t('allowances') },
+                    { key: 'overtimePay', label: t('overtimePay') },
+                    { key: 'bonus', label: t('bonus') },
+                    { key: 'deductions', label: t('deductions') },
+                    { key: 'tax', label: t('tax') },
+                    { key: 'netSalary', label: t('netSalary') },
+                    { key: 'status', label: t('colStatus') },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="py-3.5 px-4 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.label}
+                        <ArrowUpDown
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                          }`}
+                        />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-4 text-right whitespace-nowrap">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {payrolls.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-white">
+              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                {sortedPayrolls.map((p) => (
+                  <tr key={p.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="font-medium text-slate-800">
                         {p.employeeName || `Employee #${p.employeeId}`}
                       </div>
-                      <div className="text-xs font-mono text-blue-400">
+                      <div className="text-xs font-mono text-slate-400">
                         {p.employeeCode || `ID: ${p.employeeId}`}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs">
+                    <td className="py-3 px-4 text-slate-700 whitespace-nowrap">
                       ${Number(p.basicSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-400">
+                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
                       ${Number(p.allowances || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-amber-400">
+                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
                       ${Number(p.overtimePay || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-blue-400">
+                    <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
                       ${Number(p.bonus || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-rose-400">
+                    <td className="py-3 px-4 text-rose-600 whitespace-nowrap">
                       -${Number(p.deductions || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-rose-400">
+                    <td className="py-3 px-4 text-rose-600 whitespace-nowrap">
                       -${Number(p.tax || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-bold text-emerald-400">
+                    <td className="py-3 px-4 font-semibold text-slate-800 whitespace-nowrap">
                       ${Number(p.netSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       {getStatusBadge(p.status)}
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       {p.status === 'CALCULATED' ? (
                         <button
                           onClick={() => handleApprovePayroll(p.id, p.employeeName)}
-                          className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 text-xs font-semibold transition-colors border border-amber-500/30"
+                          className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-medium transition-colors"
                         >
                           {t('approve')}
                         </button>
                       ) : p.status === 'APPROVED' ? (
                         <button
                           onClick={() => handleMarkPaid(p.id, p.employeeName)}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 text-xs font-semibold transition-colors border border-emerald-500/30"
+                          className="px-2.5 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium transition-colors"
                         >
                           {t('markAsPaid')}
                         </button>
                       ) : (
-                        <span className="text-xs text-emerald-400 font-semibold flex items-center justify-end gap-1">
+                        <span className="text-xs text-emerald-600 font-medium inline-flex items-center justify-end gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Paid
                         </span>

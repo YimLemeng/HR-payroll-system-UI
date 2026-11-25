@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import { useAuth } from '../context/AuthContext';
 import axiosClient from '../api/axiosClient';
+import { useTableSort } from '../utils/useTableSort';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
 import {
@@ -21,12 +21,12 @@ import {
   AlertCircle,
   Calendar,
   Shield,
-  KeyRound
+  KeyRound,
+  ArrowUpDown
 } from 'lucide-react';
 
 const UsersPage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
   const { user: currentAuthUser } = useAuth();
 
   const [users, setUsers] = useState([]);
@@ -62,6 +62,7 @@ const UsersPage = () => {
     } catch (err) {
       console.error('Failed to load users list:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, []);
@@ -107,36 +108,30 @@ const UsersPage = () => {
     e.preventDefault();
     if (!validateCreateForm()) return;
 
-    await withLoading(
-      lang === 'km' ? 'កំពុងបង្កើតគណនី HR ថ្មី...' : 'Creating new HR specialist account...',
-      async () => {
-        try {
-          await axiosClient.post('/admin/users/hr', {
-            username: createForm.username.trim(),
-            email: createForm.email.trim(),
-            password: createForm.password,
-            confirmPassword: createForm.confirmPassword,
-          });
+    try {
+      await axiosClient.post('/admin/users/hr', {
+        username: createForm.username.trim(),
+        email: createForm.email.trim(),
+        password: createForm.password,
+        confirmPassword: createForm.confirmPassword,
+      });
 
-          setIsCreateModalOpen(false);
-          setFeedbackMessage(
-            lang === 'km'
-              ? 'បានបង្កើតគណនី HR ថ្មីដោយជោគជ័យ!'
-              : 'HR account created successfully!'
-          );
-          fetchUsers(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          const msg =
-            err.response?.data?.message ||
-            (err.response?.data?.validationErrors
-              ? Object.values(err.response.data.validationErrors).join(', ')
-              : 'Failed to create HR account. Username or email may already exist.');
-          alert(`Error: ${msg}`);
-        }
-      },
-      600
-    );
+      setIsCreateModalOpen(false);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានបង្កើតគណនី HR ថ្មីដោយជោគជ័យ!'
+          : 'HR account created successfully!'
+      );
+      fetchUsers(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message ||
+        (err.response?.data?.validationErrors
+          ? Object.values(err.response.data.validationErrors).join(', ')
+          : 'Failed to create HR account. Username or email may already exist.');
+      alert(`Error: ${msg}`);
+    }
   };
 
   const handleOpenEditModal = (u) => {
@@ -152,30 +147,24 @@ const UsersPage = () => {
     e.preventDefault();
     if (!editingUser) return;
 
-    await withLoading(
-      lang === 'km' ? 'កំពុងរក្សាទុកការកែប្រែ...' : 'Updating user account...',
-      async () => {
-        try {
-          await axiosClient.put(`/admin/users/${editingUser.id}`, {
-            email: editForm.email.trim(),
-            role: editForm.role,
-            active: editForm.active,
-          });
+    try {
+      await axiosClient.put(`/admin/users/${editingUser.id}`, {
+        email: editForm.email.trim(),
+        role: editForm.role,
+        active: editForm.active,
+      });
 
-          setEditingUser(null);
-          setFeedbackMessage(
-            lang === 'km'
-              ? 'បានកែប្រែព័ត៌មានគណនីដោយជោគជ័យ!'
-              : 'User account updated successfully!'
-          );
-          fetchUsers(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to update user account');
-        }
-      },
-      500
-    );
+      setEditingUser(null);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានកែប្រែព័ត៌មានគណនីដោយជោគជ័យ!'
+          : 'User account updated successfully!'
+      );
+      fetchUsers(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update user account');
+    }
   };
 
   const handleToggleStatus = async (u) => {
@@ -189,57 +178,57 @@ const UsersPage = () => {
     }
 
     const nextStatus = !u.active;
-    const actionText = nextStatus
-      ? (lang === 'km' ? 'បើកដំណើរការគណនី' : 'activate account')
-      : (lang === 'km' ? 'បិទដំណើរការគណនី' : 'deactivate account');
 
-    await withLoading(
-      lang === 'km' ? `កំពុង${actionText}...` : `Updating status for ${u.username}...`,
-      async () => {
-        try {
-          await axiosClient.put(`/admin/users/${u.id}/status`, {
-            active: nextStatus,
-          });
-          setFeedbackMessage(
-            lang === 'km'
-              ? `បានកែប្រែស្ថានភាព ${u.username} ទៅជា ${nextStatus ? 'សកម្ម' : 'អសកម្ម'}!`
-              : `Account for ${u.username} set to ${nextStatus ? 'Active' : 'Disabled'}!`
-          );
-          fetchUsers(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to update account status');
-        }
-      },
-      400
-    );
+    try {
+      await axiosClient.put(`/admin/users/${u.id}/status`, {
+        active: nextStatus,
+      });
+      setFeedbackMessage(
+        lang === 'km'
+          ? `បានកែប្រែស្ថានភាព ${u.username} ទៅជា ${nextStatus ? 'សកម្ម' : 'អសកម្ម'}!`
+          : `Account for ${u.username} set to ${nextStatus ? 'Active' : 'Disabled'}!`
+      );
+      fetchUsers(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update account status');
+    }
   };
 
   const hrCount = users.filter((u) => u.role === 'HR').length;
   const adminCount = users.filter((u) => u.role === 'ADMIN').length;
 
+  const { sortConfig, handleSort, sortedItems: sortedUsers } = useTableSort(users, {
+    username: (u) => u.username || '',
+    email: (u) => u.email || '',
+    role: (u) => u.role || '',
+    active: (u) => Boolean(u.active),
+    createdAt: (u) => u.createdAt || '',
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/30 shadow-md shadow-blue-500/10">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {t('usersTitle')}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {t('usersSubtitle')} ({users.length} {lang === 'km' ? 'គណនី' : 'accounts'})
-            </p>
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('usersTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ប្រព័ន្ធ' : 'System'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">
+              {t('navUsers')} ({users.length})
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchUsers()}
@@ -248,7 +237,7 @@ const UsersPage = () => {
           </Button>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={UserPlus}
             onClick={handleOpenCreateModal}
           >
@@ -259,47 +248,47 @@ const UsersPage = () => {
 
       {/* Success Feedback Alert */}
       {feedbackMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-medium animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-medium animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{feedbackMessage}</span>
         </div>
       )}
 
-      {/* Summary Stat Pills */}
+      {/* Summary Stat Cards (Admindek Style) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 block mb-1">Total System Accounts</span>
-            <span className="text-2xl font-bold text-white">{users.length}</span>
+            <span className="text-[13px] font-medium text-slate-500 block">Total System Accounts</span>
+            <span className="text-2xl font-bold text-slate-900 mt-1 block">{users.length}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-300">
+          <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
             <User className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 block mb-1">HR Specialists</span>
-            <span className="text-2xl font-bold text-blue-400">{hrCount}</span>
+            <span className="text-[13px] font-medium text-slate-500 block">HR Specialists</span>
+            <span className="text-2xl font-bold text-slate-900 mt-1 block">{hrCount}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-500/15 flex items-center justify-center text-blue-400 border border-blue-500/30">
+          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
             <UserPlus className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div className="bg-white border border-slate-200/80 rounded-xl p-5 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-center justify-between">
           <div>
-            <span className="text-xs text-slate-400 block mb-1">Administrators</span>
-            <span className="text-2xl font-bold text-purple-400">{adminCount}</span>
+            <span className="text-[13px] font-medium text-slate-500 block">Administrators</span>
+            <span className="text-2xl font-bold text-slate-900 mt-1 block">{adminCount}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center text-purple-400 border border-purple-500/30">
+          <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
             <Shield className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Users Table Card */}
-      <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
         {isLoading ? (
           <div className="py-24 text-center space-y-3">
             <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
@@ -329,70 +318,68 @@ const UsersPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-[#080d1a] text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
                 <tr>
-                  <th className="py-3.5 px-4">{t('colEmployee')} (Account)</th>
-                  <th className="py-3.5 px-4">{t('email')}</th>
-                  <th className="py-3.5 px-4">{t('userRole')}</th>
-                  <th className="py-3.5 px-4">{t('userStatus')}</th>
-                  <th className="py-3.5 px-4">{t('colDate')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('actions')}</th>
+                  {[
+                    { key: 'username', label: `${t('colEmployee')} (Account)` },
+                    { key: 'email', label: t('email') },
+                    { key: 'role', label: t('userRole') },
+                    { key: 'active', label: t('userStatus') },
+                    { key: 'createdAt', label: t('colDate') },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="py-3.5 px-5 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.label}
+                        <ArrowUpDown
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                          }`}
+                        />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-5 text-right whitespace-nowrap">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {users.map((u) => {
+              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                {sortedUsers.map((u) => {
                   const isCurrent =
                     currentAuthUser?.username === u.username ||
                     currentAuthUser?.userName === u.username;
 
                   return (
-                    <tr key={u.id} className="hover:bg-slate-800/30 transition-colors">
-                      {/* Username & Avatar */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-md ${
-                              u.role === 'ADMIN'
-                                ? 'bg-gradient-to-tr from-purple-600 to-indigo-600 text-white'
-                                : 'bg-gradient-to-tr from-blue-600 to-cyan-600 text-white'
-                            }`}
-                          >
-                            {u.username?.charAt(0).toUpperCase() || 'U'}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-white flex items-center gap-1.5">
-                              <span>{u.username}</span>
-                              {isCurrent && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-300 border border-blue-500/30 font-mono">
-                                  You
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-slate-500 font-mono">
-                              User ID #{u.id}
-                            </div>
-                          </div>
+                    <tr key={u.id} className="hover:bg-slate-50/70 transition-colors">
+                      {/* Username */}
+                      <td className="py-3 px-5 whitespace-nowrap">
+                        <div className="font-medium text-slate-800 flex items-center gap-1.5">
+                          <span>{u.username}</span>
+                          {isCurrent && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-600 font-semibold">
+                              You
+                            </span>
+                          )}
                         </div>
                       </td>
 
                       {/* Email */}
-                      <td className="py-3.5 px-4 text-slate-300">
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-slate-500" />
-                          <span>{u.email}</span>
-                        </div>
+                      <td className="py-3 px-5 text-slate-500 whitespace-nowrap">
+                        {u.email}
                       </td>
 
                       {/* Role */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-5 whitespace-nowrap">
                         {u.role === 'ADMIN' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-400 border border-purple-500/30">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-purple-50 text-purple-700">
                             <Shield className="w-3 h-3" />
                             {t('roleAdmin')}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-medium bg-blue-50 text-blue-700">
                             <User className="w-3 h-3" />
                             {t('roleHr')}
                           </span>
@@ -400,47 +387,47 @@ const UsersPage = () => {
                       </td>
 
                       {/* Active Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-5 whitespace-nowrap">
                         {u.active ? (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                          <span className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-emerald-50 text-emerald-700 inline-flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             {t('activeAccount')}
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/15 text-slate-400 border border-slate-500/30">
+                          <span className="px-2.5 py-0.5 rounded-md text-xs font-medium bg-slate-100 text-slate-600">
                             {t('inactiveAccount')}
                           </span>
                         )}
                       </td>
 
                       {/* Created At */}
-                      <td className="py-3.5 px-4 text-xs font-mono text-slate-400">
+                      <td className="py-3 px-5 text-xs font-mono text-slate-500 whitespace-nowrap">
                         {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3 px-5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             title={u.active ? 'Deactivate User' : 'Activate User'}
                             disabled={isCurrent && u.active}
                             onClick={() => handleToggleStatus(u)}
-                            className={`p-1.5 rounded-lg border transition-colors ${
+                            className={`p-1.5 rounded-md transition-colors ${
                               isCurrent && u.active
-                                ? 'opacity-30 cursor-not-allowed bg-slate-800 border-slate-700 text-slate-500'
+                                ? 'opacity-30 cursor-not-allowed bg-slate-100 text-slate-400'
                                 : u.active
-                                ? 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border-rose-500/30'
-                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-600'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600'
                             }`}
                           >
-                            <Power className="w-4 h-4" />
+                            <Power className="w-3.5 h-3.5" />
                           </button>
                           <button
                             title={t('edit')}
                             onClick={() => handleOpenEditModal(u)}
-                            className="p-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 transition-colors"
+                            className="p-1.5 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

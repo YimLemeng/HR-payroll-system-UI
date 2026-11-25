@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import axiosClient from '../api/axiosClient';
+import { useTableSort } from '../utils/useTableSort';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
 import {
@@ -17,7 +17,8 @@ import {
   MessageSquare,
   Ban,
   Clock,
-  XCircle
+  XCircle,
+  ArrowUpDown
 } from 'lucide-react';
 
 const LEAVE_TYPES = [
@@ -38,7 +39,6 @@ const LEAVE_STATUSES = [
 
 const LeavesPage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
 
   const [leaves, setLeaves] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -83,6 +83,7 @@ const LeavesPage = () => {
     } catch (err) {
       console.error('Failed to fetch leave requests:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, [selectedStatus]);
@@ -115,32 +116,26 @@ const LeavesPage = () => {
       reason: formData.reason.trim()
     };
 
-    await withLoading(
-      lang === 'km' ? 'កំពុងដាក់ពាក្យស្នើសុំច្បាប់...' : 'Submitting leave request...',
-      async () => {
-        try {
-          await axiosClient.post('/leaves', payload);
-          setIsSubmitModalOpen(false);
-          setFormData({
-            employeeId: employees[0]?.id ? String(employees[0].id) : '',
-            leaveType: 'ANNUAL',
-            startDate: new Date().toISOString().split('T')[0],
-            endDate: new Date().toISOString().split('T')[0],
-            reason: ''
-          });
-          setFeedbackMessage(
-            lang === 'km'
-              ? 'បានដាក់ពាក្យស្នើសុំច្បាប់ដោយជោគជ័យ!'
-              : 'Leave request submitted successfully!'
-          );
-          fetchLeaves(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to submit leave request');
-        }
-      },
-      500
-    );
+    try {
+      await axiosClient.post('/leaves', payload);
+      setIsSubmitModalOpen(false);
+      setFormData({
+        employeeId: employees[0]?.id ? String(employees[0].id) : '',
+        leaveType: 'ANNUAL',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        reason: ''
+      });
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានដាក់ពាក្យស្នើសុំច្បាប់ដោយជោគជ័យ!'
+          : 'Leave request submitted successfully!'
+      );
+      fetchLeaves(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to submit leave request');
+    }
   };
 
   const handleReviewAction = async () => {
@@ -148,50 +143,38 @@ const LeavesPage = () => {
     const { id, action } = reviewModalData;
     const endpoint = `/leaves/${id}/${action}`;
 
-    const loadingText = action === 'approve'
-      ? (lang === 'km' ? 'កំពុងអនុម័តច្បាប់...' : 'Approving leave request...')
-      : (lang === 'km' ? 'កំពុងបដិសេធច្បាប់...' : 'Rejecting leave request...');
+    try {
+      await axiosClient.patch(endpoint, {
+        reviewComment: reviewComment.trim() || null
+      });
 
-    await withLoading(loadingText, async () => {
-      try {
-        await axiosClient.patch(endpoint, {
-          reviewComment: reviewComment.trim() || null
-        });
-
-        setReviewModalData(null);
-        setReviewComment('');
-        setFeedbackMessage(
-          lang === 'km'
-            ? `បាន${action === 'approve' ? 'អនុម័ត' : 'បដិសេធ'}ច្បាប់ដោយជោគជ័យ!`
-            : `Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`
-        );
-        fetchLeaves(true);
-        setTimeout(() => setFeedbackMessage(null), 4000);
-      } catch (err) {
-        alert(err.response?.data?.message || `Failed to ${action} leave request`);
-      }
-    }, 500);
+      setReviewModalData(null);
+      setReviewComment('');
+      setFeedbackMessage(
+        lang === 'km'
+          ? `បាន${action === 'approve' ? 'អនុម័ត' : 'បដិសេធ'}ច្បាប់ដោយជោគជ័យ!`
+          : `Leave request ${action === 'approve' ? 'approved' : 'rejected'} successfully!`
+      );
+      fetchLeaves(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || `Failed to ${action} leave request`);
+    }
   };
 
   const handleCancelLeave = async (leaveId) => {
-    await withLoading(
-      lang === 'km' ? 'កំពុងបោះបង់ច្បាប់...' : 'Cancelling leave...',
-      async () => {
-        try {
-          await axiosClient.patch(`/leaves/${leaveId}/cancel`);
-          setFeedbackMessage(
-            lang === 'km'
-              ? 'បានបោះបង់ពាក្យសុំច្បាប់ដោយជោគជ័យ!'
-              : 'Leave request cancelled successfully!'
-          );
-          fetchLeaves(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to cancel leave');
-        }
-      },
-      500
-    );
+    try {
+      await axiosClient.patch(`/leaves/${leaveId}/cancel`);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានបោះបង់ពាក្យសុំច្បាប់ដោយជោគជ័យ!'
+          : 'Leave request cancelled successfully!'
+      );
+      fetchLeaves(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to cancel leave');
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -233,28 +216,38 @@ const LeavesPage = () => {
     return lang === 'km' ? (found?.labelKm || type) : (found?.labelEn || type);
   };
 
+  const { sortConfig, handleSort, sortedItems: sortedLeaves } = useTableSort(leaves, {
+    employeeName: (l) => l.employeeName || '',
+    leaveType: (l) => l.leaveType || '',
+    startDate: (l) => l.startDate || '',
+    endDate: (l) => l.endDate || '',
+    reason: (l) => l.reason || '',
+    status: (l) => l.status || '',
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-md shadow-amber-500/10">
-            <CalendarClock className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {t('leavesTitle')}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {t('leavesSubtitle')} ({leaves.length} {lang === 'km' ? 'ពាក្យស្នើសុំ' : 'requests'})
-            </p>
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('leavesTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ធនធានមនុស្ស' : 'Workforce'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">
+              {t('navLeaves')} ({leaves.length})
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchLeaves()}
@@ -263,7 +256,7 @@ const LeavesPage = () => {
           </Button>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={Plus}
             onClick={() => {
               setFormData({
@@ -283,41 +276,39 @@ const LeavesPage = () => {
 
       {/* Success Notification */}
       {feedbackMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-medium animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-medium animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{feedbackMessage}</span>
         </div>
       )}
 
-      {/* Status Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <button
-          onClick={() => setSelectedStatus('')}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-            selectedStatus === ''
-              ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20'
-              : 'bg-[#0d1527] text-slate-400 border-slate-800 hover:text-white'
-          }`}
-        >
-          {lang === 'km' ? 'ទាំងអស់' : 'All Requests'}
-        </button>
-        {LEAVE_STATUSES.map((st) => (
+      {/* Unified White Table Card with Integrated Status Filter Tabs */}
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+        <div className="p-4 sm:px-6 border-b border-slate-100 flex items-center gap-2 overflow-x-auto bg-white">
           <button
-            key={st.value}
-            onClick={() => setSelectedStatus(st.value)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-              selectedStatus === st.value
-                ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/20'
-                : 'bg-[#0d1527] text-slate-400 border-slate-800 hover:text-white'
+            onClick={() => setSelectedStatus('')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+              selectedStatus === ''
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
-            {lang === 'km' ? st.labelKm : st.labelEn}
+            {lang === 'km' ? 'ទាំងអស់' : 'All Requests'}
           </button>
-        ))}
-      </div>
-
-      {/* Leaves Records Table */}
-      <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
+          {LEAVE_STATUSES.map((st) => (
+            <button
+              key={st.value}
+              onClick={() => setSelectedStatus(st.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                selectedStatus === st.value
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
+              }`}
+            >
+              {lang === 'km' ? st.labelKm : st.labelEn}
+            </button>
+          ))}
+        </div>
         {isLoading ? (
           <div className="py-24 text-center space-y-3">
             <RefreshCw className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
@@ -347,53 +338,68 @@ const LeavesPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-[#080d1a] text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
                 <tr>
-                  <th className="py-3.5 px-4">{t('colEmployee')}</th>
-                  <th className="py-3.5 px-4">{t('leaveType')}</th>
-                  <th className="py-3.5 px-4">{t('startDate')}</th>
-                  <th className="py-3.5 px-4">{t('endDate')}</th>
-                  <th className="py-3.5 px-4">{t('reason')}</th>
-                  <th className="py-3.5 px-4">{t('colStatus')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('actions')}</th>
+                  {[
+                    { key: 'employeeName', label: t('colEmployee') },
+                    { key: 'leaveType', label: t('leaveType') },
+                    { key: 'startDate', label: t('startDate') },
+                    { key: 'endDate', label: t('endDate') },
+                    { key: 'reason', label: t('reason') },
+                    { key: 'status', label: t('colStatus') },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="py-3.5 px-5 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.label}
+                        <ArrowUpDown
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                          }`}
+                        />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-5 text-right whitespace-nowrap">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {leaves.map((leave) => (
-                  <tr key={leave.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-white">
+              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                {sortedLeaves.map((leave) => (
+                  <tr key={leave.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-5 whitespace-nowrap">
+                      <div className="font-medium text-slate-800">
                         {leave.employeeName || `Employee #${leave.employeeId}`}
                       </div>
-                      <div className="text-xs font-mono text-blue-400">
+                      <div className="text-xs font-mono text-slate-400">
                         {leave.employeeCode || `ID: ${leave.employeeId}`}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex px-2.5 py-0.5 rounded-lg text-xs bg-slate-800 text-slate-200 border border-slate-700 font-medium">
-                        {getLeaveTypeLabel(leave.leaveType)}
-                      </span>
+                    <td className="py-3 px-5 text-slate-700 whitespace-nowrap">
+                      {getLeaveTypeLabel(leave.leaveType)}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-300">
+                    <td className="py-3 px-5 font-mono text-xs text-slate-500 whitespace-nowrap">
                       {leave.startDate}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-300">
+                    <td className="py-3 px-5 font-mono text-xs text-slate-500 whitespace-nowrap">
                       {leave.endDate}
                     </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-400 max-w-xs truncate">
+                    <td className="py-3 px-5 text-xs text-slate-500 max-w-xs truncate">
                       {leave.reason}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-5 whitespace-nowrap">
                       {getStatusBadge(leave.status)}
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3 px-5 text-right whitespace-nowrap">
                       {leave.status === 'PENDING' ? (
                         <div className="inline-flex items-center justify-end gap-1.5">
                           <button
                             title={t('approve')}
                             onClick={() => setReviewModalData({ id: leave.id, action: 'approve' })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-all shadow-sm active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 transition-colors"
                           >
                             <Check className="w-3.5 h-3.5" />
                             <span>{t('approve')}</span>
@@ -401,7 +407,7 @@ const LeavesPage = () => {
                           <button
                             title={t('reject')}
                             onClick={() => setReviewModalData({ id: leave.id, action: 'reject' })}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 transition-all shadow-sm active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
                             <span>{t('reject')}</span>
@@ -410,14 +416,14 @@ const LeavesPage = () => {
                       ) : leave.status === 'APPROVED' ? (
                         <button
                           onClick={() => setCancelModalLeave(leave)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 hover:border-rose-500/50 transition-all shadow-sm shadow-rose-500/10 active:scale-95 group"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
                           title={lang === 'km' ? 'បោះបង់ច្បាប់ឈប់សម្រាកនេះ' : 'Cancel this leave request'}
                         >
-                          <Ban className="w-3.5 h-3.5 text-rose-400 group-hover:rotate-12 transition-transform" />
+                          <Ban className="w-3.5 h-3.5" />
                           <span>{lang === 'km' ? 'បោះបង់' : 'Cancel'}</span>
                         </button>
                       ) : (
-                        <span className="text-xs text-slate-500">—</span>
+                        <span className="text-xs text-slate-400">—</span>
                       )}
                     </td>
                   </tr>

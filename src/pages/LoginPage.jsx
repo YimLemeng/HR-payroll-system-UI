@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
 import Button from '../components/common/Button';
 import BrandLogo from '../components/common/BrandLogo';
+import LanguageSwitcher from '../components/common/LanguageSwitcher';
 import {
   Lock,
   User,
@@ -94,32 +95,29 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#060a14] text-slate-100 flex items-center justify-center p-0 lg:p-6 relative overflow-hidden select-none">
-      {/* Background Ambient Imagery for the whole page */}
+    <div className="min-h-screen bg-[#f4f7fa] text-slate-800 flex items-center justify-center p-0 lg:p-6 relative overflow-hidden select-none">
+      {/* Subtle Background Ambient Imagery & Radial Lights */}
       <div 
-        className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-25 filter blur-[1px]"
+        className="absolute inset-0 bg-cover bg-center pointer-events-none opacity-[0.06] filter blur-[1px]"
         style={{ backgroundImage: "url('/images/login-bg.jpg')" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-tr from-[#060a14] via-[#060a14]/90 to-[#08122d]/85 pointer-events-none" />
+      <div className="absolute -top-40 -left-40 w-[550px] h-[550px] rounded-full bg-blue-500/10 blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-[550px] h-[550px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none" />
 
-      {/* Ambient Radial Lights */}
-      <div className="absolute -top-40 -left-40 w-[550px] h-[550px] rounded-full bg-blue-600/15 blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-40 -right-40 w-[550px] h-[550px] rounded-full bg-indigo-600/15 blur-[140px] pointer-events-none" />
-
-      {/* Main Unified Split Showcase Card */}
-      <div className="w-full max-w-5xl lg:rounded-3xl border-0 lg:border border-slate-700/70 shadow-2xl shadow-black/80 backdrop-blur-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 min-h-screen lg:min-h-[640px] bg-[#0b1329]/95">
+      {/* Main Unified Split Showcase Card (Admindek Slate + Crisp White) */}
+      <div className="w-full max-w-5xl lg:rounded-2xl border-0 lg:border border-slate-200/90 shadow-2xl shadow-slate-900/10 overflow-hidden grid grid-cols-1 lg:grid-cols-12 relative z-10 min-h-screen lg:min-h-[640px] bg-white">
         
         {/* ======================================================== */}
-        {/* Left Side: Immersive Visual Hero Banner (7 cols on lg)   */}
+        {/* Left Side: Dark Slate Hero Banner (#1c2434 matching Sidebar) */}
         {/* ======================================================== */}
-        <div className="lg:col-span-7 relative flex flex-col justify-between p-8 sm:p-12 overflow-hidden bg-slate-950">
+        <div className="lg:col-span-7 relative flex flex-col justify-between p-8 sm:p-12 overflow-hidden bg-[#1c2434]">
           {/* Background Image inside Left Panel */}
           <div 
-            className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105"
+            className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105 opacity-35"
             style={{ backgroundImage: "url('/images/login-hero.jpg')" }}
           />
-          {/* Deep Navy/Black Gradient Overlay to keep text crystal clear */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#060b18] via-[#08132e]/85 to-[#091a42]/70" />
+          {/* Rich Dark Slate Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#131a29] via-[#1c2434]/90 to-[#1e293b]/80" />
           <div className="absolute inset-0 bg-blue-600/10 mix-blend-overlay" />
 
           {/* Top Brand Tag */}
@@ -198,35 +196,40 @@ const LoginPage = () => {
         </div>
 
         {/* ======================================================== */}
-        {/* Right Side: Clean Production Authentication (5 cols on lg) */}
+        {/* Right Side: Clean White Authentication Form (5 cols on lg) */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 flex flex-col justify-between p-8 sm:p-10 bg-[#0b1329] relative z-10">
+        <div className="lg:col-span-5 flex flex-col justify-between p-8 sm:p-10 bg-white relative z-10">
+          {/* Top Right Language Switcher */}
+          <div className="flex justify-end mb-2">
+            <LanguageSwitcher variant="simple" />
+          </div>
+
           <div className="my-auto">
             {/* Header */}
             <div className="text-center mb-7">
               <div className="inline-flex items-center justify-center mb-3.5">
-                <BrandLogo size="lg" className="shadow-blue-500/30" />
+                <BrandLogo size="lg" className="shadow-blue-600/20" />
               </div>
-              <h2 className="text-2xl font-extrabold text-white tracking-tight">
+              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
                 {t('welcomeTitle')}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
                 {t('welcomeSubtitle')}
               </p>
             </div>
 
             {/* Session Termination / Timeout Notice */}
             {sessionNotice && !errorMessage && (
-              <div className="mb-5 p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-medium flex items-start gap-2.5 animate-in fade-in duration-200">
-                <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <div className="mb-5 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium flex items-start gap-2.5 animate-in fade-in duration-200">
+                <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
                 <span>{sessionNotice}</span>
               </div>
             )}
 
             {/* Error Alert */}
             {errorMessage && (
-              <div className="mb-5 p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-start gap-2.5 animate-in fade-in duration-200">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+              <div className="mb-5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-start gap-2.5 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
                 <span>{errorMessage}</span>
               </div>
             )}
@@ -235,11 +238,11 @@ const LoginPage = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Username Field */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   {t('usernameLabel')}
                 </label>
                 <div className="relative group">
-                  <User className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
+                  <User className="w-4 h-4 text-slate-400 group-focus-within:text-blue-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
                   <input
                     type="text"
                     value={username}
@@ -250,18 +253,18 @@ const LoginPage = () => {
                     autoCapitalize="none"
                     spellCheck="false"
                     disabled={isLoading || cooldownSeconds > 0}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-[#060b17] border border-slate-700/80 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-500 disabled:opacity-60"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50/70 focus:bg-white border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all placeholder:text-slate-400 disabled:opacity-60"
                   />
                 </div>
               </div>
 
               {/* Password Field */}
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   {t('passwordLabel')}
                 </label>
                 <div className="relative group">
-                  <Lock className="w-4 h-4 text-slate-500 group-focus-within:text-blue-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
+                  <Lock className="w-4 h-4 text-slate-400 group-focus-within:text-blue-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none transition-colors" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -271,13 +274,13 @@ const LoginPage = () => {
                     autoComplete="current-password"
                     spellCheck="false"
                     disabled={isLoading || cooldownSeconds > 0}
-                    className="w-full pl-10 pr-11 py-3 rounded-xl bg-[#060b17] border border-slate-700/80 text-white text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-500 disabled:opacity-60"
+                    className="w-full pl-10 pr-11 py-2.5 rounded-xl bg-slate-50/70 focus:bg-white border border-slate-200 text-slate-900 text-sm focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-600/15 transition-all placeholder:text-slate-400 disabled:opacity-60"
                   />
                   <button
                     type="button"
                     tabIndex={-1}
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -288,11 +291,8 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={isLoading || cooldownSeconds > 0}
-                className="group relative w-full flex items-center justify-center gap-2.5 py-3 px-6 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/40 border border-blue-400/30 transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none select-none overflow-hidden cursor-pointer mt-4"
+                className="group relative w-full flex items-center justify-center gap-2.5 py-2.5 px-6 rounded-xl font-semibold text-sm text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 shadow-md shadow-blue-600/20 hover:shadow-lg hover:shadow-blue-600/25 transition-all duration-200 active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed select-none overflow-hidden cursor-pointer mt-4"
               >
-                {/* Top subtle specular reflection line */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
-
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
@@ -322,8 +322,8 @@ const LoginPage = () => {
           </div>
 
           {/* Simple Clean Production Footer */}
-          <div className="mt-8 pt-4 border-t border-slate-800/80 text-center">
-            <p className="text-[11px] text-slate-500">
+          <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+            <p className="text-[11px] text-slate-400">
               © {new Date().getFullYear()} HR & Payroll Enterprise. All rights reserved.
             </p>
           </div>

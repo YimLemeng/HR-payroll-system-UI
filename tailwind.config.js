@@ -7,7 +7,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'Kantumruy Pro', 'Battambang', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '"Khmer OS Battambang"', 'Battambang', 'system-ui', 'sans-serif'],
       },
       colors: {
         brand: {

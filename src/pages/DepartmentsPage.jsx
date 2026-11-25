@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import axiosClient from '../api/axiosClient';
+import { useTableSort } from '../utils/useTableSort';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
 import {
@@ -15,12 +15,12 @@ import {
   X,
   Clock,
   Search,
-  AlertTriangle
+  AlertTriangle,
+  ArrowUpDown
 } from 'lucide-react';
 
 const DepartmentsPage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
 
   const [departments, setDepartments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,6 +45,7 @@ const DepartmentsPage = () => {
     } catch (err) {
       console.error('Failed to load departments:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, []);
@@ -90,56 +91,44 @@ const DepartmentsPage = () => {
       description: formData.description.trim() || null
     };
 
-    const loadingText = modalMode === 'create'
-      ? (lang === 'km' ? 'កំពុងបង្កើតដេប៉ាតឺម៉ង់ថ្មី...' : 'Creating new department...')
-      : (lang === 'km' ? 'កំពុងកែប្រែដេប៉ាតឺម៉ង់...' : 'Updating department details...');
-
-    await withLoading(loadingText, async () => {
-      try {
-        if (modalMode === 'create') {
-          await axiosClient.post('/departments', payload);
-        } else {
-          await axiosClient.put(`/departments/${editingId}`, payload);
-        }
-
-        setIsModalOpen(false);
-        setFeedbackMessage(
-          lang === 'km'
-            ? 'បានរក្សាទុកដេប៉ាតឺម៉ង់ដោយជោគជ័យ!'
-            : 'Department saved successfully!'
-        );
-        fetchDepartments(true);
-        setTimeout(() => setFeedbackMessage(null), 4000);
-      } catch (err) {
-        const errorMsg =
-          err.response?.data?.message || 'Failed to save department. Name might be duplicate.';
-        alert(`Error: ${errorMsg}`);
+    try {
+      if (modalMode === 'create') {
+        await axiosClient.post('/departments', payload);
+      } else {
+        await axiosClient.put(`/departments/${editingId}`, payload);
       }
-    }, 500);
+
+      setIsModalOpen(false);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានរក្សាទុកដេប៉ាតឺម៉ង់ដោយជោគជ័យ!'
+          : 'Department saved successfully!'
+      );
+      fetchDepartments(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      const errorMsg =
+        err.response?.data?.message || 'Failed to save department. Name might be duplicate.';
+      alert(`Error: ${errorMsg}`);
+    }
   };
 
   const handleDeleteDepartment = async () => {
     if (!deletingDept) return;
 
-    await withLoading(
-      lang === 'km' ? 'កំពុងលុបដេប៉ាតឺម៉ង់...' : 'Deleting department...',
-      async () => {
-        try {
-          await axiosClient.delete(`/departments/${deletingDept.id}`);
-          setDeletingDept(null);
-          setFeedbackMessage(
-            lang === 'km'
-              ? 'បានលុបដេប៉ាតឺម៉ង់ដោយជោគជ័យ!'
-              : 'Department deleted successfully!'
-          );
-          fetchDepartments(true);
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Cannot delete department. Employees are still assigned.');
-        }
-      },
-      500
-    );
+    try {
+      await axiosClient.delete(`/departments/${deletingDept.id}`);
+      setDeletingDept(null);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានលុបដេប៉ាតឺម៉ង់ដោយជោគជ័យ!'
+          : 'Department deleted successfully!'
+      );
+      fetchDepartments(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Cannot delete department. Employees are still assigned.');
+    }
   };
 
   const filteredDepartments = departments.filter((dept) => {
@@ -150,28 +139,36 @@ const DepartmentsPage = () => {
     );
   });
 
+  const { sortConfig, handleSort, sortedItems: sortedDepartments } = useTableSort(filteredDepartments, {
+    id: (d) => Number(d.id || 0),
+    departmentName: (d) => d.departmentName || '',
+    description: (d) => d.description || '',
+    employeeCount: (d) => Number(d.employeeCount ?? 0),
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/15 text-purple-400 flex items-center justify-center border border-purple-500/30 shadow-md shadow-purple-500/10">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {t('departmentsTitle')}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {t('departmentsSubtitle')} ({departments.length} {lang === 'km' ? 'ផ្នែក' : 'divisions'})
-            </p>
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('departmentsTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ធនធានមនុស្ស' : 'Workforce'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">
+              {t('navDepartments')} ({departments.length})
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchDepartments()}
@@ -180,7 +177,7 @@ const DepartmentsPage = () => {
           </Button>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={Plus}
             onClick={handleOpenCreateModal}
           >
@@ -191,108 +188,123 @@ const DepartmentsPage = () => {
 
       {/* Success Alert */}
       {feedbackMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-medium animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-medium animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{feedbackMessage}</span>
         </div>
       )}
 
-      {/* Search Input */}
-      <div className="relative max-w-md">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          value={searchKeyword}
-          onChange={(e) => setSearchKeyword(e.target.value)}
-          placeholder="Search department by name or description..."
-          className="w-full pl-10 pr-4 py-2 bg-[#0d1527] border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors shadow-sm"
-        />
-      </div>
-
-      {/* Departments Grid Cards */}
-      {isLoading ? (
-        <div className="py-24 text-center space-y-3 bg-[#0d1527] rounded-2xl border border-slate-800/80">
-          <RefreshCw className="w-8 h-8 text-purple-400 animate-spin mx-auto" />
-          <p className="text-sm text-slate-400">{t('loading')}</p>
-        </div>
-      ) : filteredDepartments.length === 0 ? (
-        <div className="py-20 px-6 text-center flex flex-col items-center justify-center space-y-4 bg-[#0d1527] rounded-2xl border border-slate-800/80">
-          <div className="w-16 h-16 rounded-2xl bg-slate-800/60 border border-slate-700/70 text-slate-400 flex items-center justify-center">
-            <Building2 className="w-8 h-8" />
+      {/* Unified White Table Card with Integrated Search Toolbar */}
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+        <div className="p-4 sm:px-6 border-b border-slate-100 bg-white">
+          <div className="relative max-w-md">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder={lang === 'km' ? 'ស្វែងរកដេប៉ាតឺម៉ង់...' : 'Search department by name or description...'}
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+            />
           </div>
-          <div className="max-w-md">
-            <h3 className="text-lg font-bold text-white">
-              {t('noDepartmentsFound')}
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Add your first organizational department to group your staff members.
-            </p>
-          </div>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={Plus}
-            onClick={handleOpenCreateModal}
-          >
-            {t('addFirstDepartment')}
-          </Button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredDepartments.map((dept) => (
-            <div
-              key={dept.id}
-              className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 hover:border-slate-700 transition-all shadow-lg flex flex-col justify-between group"
-            >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20 font-bold text-sm">
-                    {dept.departmentName?.slice(0, 2).toUpperCase() || 'DP'}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleOpenEditModal(dept)}
-                      title={t('edit')}
-                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setDeletingDept(dept)}
-                      title={t('deleteDepartment')}
-                      className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
 
-                <div>
-                  <h3 className="text-base font-bold text-white group-hover:text-purple-300 transition-colors">
-                    {dept.departmentName}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                    {dept.description || 'No description provided.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <div className="flex items-center gap-1.5 font-semibold text-slate-300">
-                  <Users className="w-3.5 h-3.5 text-purple-400" />
-                  <span>
-                    {dept.employeeCount ?? 0} {lang === 'km' ? 'បុគ្គលិក' : 'Staff Members'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] text-slate-500">
-                  <Clock className="w-3 h-3" />
-                  <span>ID #{dept.id}</span>
-                </div>
-              </div>
+        {isLoading ? (
+          <div className="py-24 text-center space-y-3">
+            <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+            <p className="text-sm text-slate-500">{t('loading')}</p>
+          </div>
+        ) : filteredDepartments.length === 0 ? (
+          <div className="py-20 px-6 text-center flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center">
+              <Building2 className="w-8 h-8" />
             </div>
-          ))}
-        </div>
-      )}
+            <div className="max-w-md">
+              <h3 className="text-lg font-bold text-slate-900">
+                {t('noDepartmentsFound')}
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Add your first organizational department to group your staff members.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Plus}
+              onClick={handleOpenCreateModal}
+            >
+              {t('addFirstDepartment')}
+            </Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
+                <tr>
+                  {[
+                    { key: 'id', label: 'ID' },
+                    { key: 'departmentName', label: t('colDepartment') },
+                    { key: 'description', label: lang === 'km' ? 'ការពិពណ៌នា' : 'Description' },
+                    { key: 'employeeCount', label: t('headcount') },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="py-3.5 px-5 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.label}
+                        <ArrowUpDown
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                          }`}
+                        />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-5 text-right whitespace-nowrap">{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                {sortedDepartments.map((dept) => (
+                  <tr key={dept.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-5 font-mono text-xs text-slate-500 whitespace-nowrap">
+                      #{dept.id}
+                    </td>
+                    <td className="py-3 px-5 font-medium text-slate-800 whitespace-nowrap">
+                      {dept.departmentName}
+                    </td>
+                    <td className="py-3 px-5 text-slate-500 max-w-md truncate">
+                      {dept.description || '—'}
+                    </td>
+                    <td className="py-3 px-5 font-semibold text-slate-800 whitespace-nowrap">
+                      {dept.employeeCount ?? 0} {lang === 'km' ? 'បុគ្គលិក' : 'Staff Members'}
+                    </td>
+                    <td className="py-3 px-5 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1.5">
+                        <button
+                          onClick={() => handleOpenEditModal(dept)}
+                          title={t('edit')}
+                          className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingDept(dept)}
+                          title={t('deleteDepartment')}
+                          className="p-1.5 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* CREATE / EDIT DEPARTMENT MODAL */}
       {isModalOpen && (

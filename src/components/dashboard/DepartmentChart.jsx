@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import axiosClient from '../../api/axiosClient';
-import { Building2, Loader2, Layers } from 'lucide-react';
+import { Loader2, Layers } from 'lucide-react';
 
-const BAR_COLORS = [
-  'bg-blue-500',
-  'bg-indigo-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-purple-500',
-  'bg-cyan-500',
-  'bg-rose-500',
+const DONUT_COLORS = [
+  '#3b82f6', // Blue
+  '#10b981', // Emerald
+  '#f59e0b', // Amber
+  '#8b5cf6', // Purple
+  '#06b6d4', // Cyan
+  '#ec4899', // Pink
+  '#6366f1', // Indigo
 ];
 
 const DepartmentChart = () => {
@@ -59,79 +59,122 @@ const DepartmentChart = () => {
     0
   );
 
+  // Build SVG donut arc segments
+  const radius = 64;
+  const circumference = 2 * Math.PI * radius;
+  let cumulativePercent = 0;
+
+  const segments = departments
+    .filter((d) => (Number(d.headcount) || 0) > 0)
+    .map((dept, index) => {
+      const count = Number(dept.headcount) || 0;
+      const percent = totalHeadcount > 0 ? (count / totalHeadcount) * 100 : 0;
+      const strokeDasharray = `${(percent / 100) * circumference} ${circumference}`;
+      const strokeDashoffset = -((cumulativePercent / 100) * circumference);
+
+      // Mid-angle for percentage label inside the donut ring
+      const midPercent = cumulativePercent + percent / 2;
+      const angleRad = ((midPercent / 100) * 360 - 90) * (Math.PI / 180);
+      const labelX = 100 + radius * Math.cos(angleRad);
+      const labelY = 100 + radius * Math.sin(angleRad);
+
+      cumulativePercent += percent;
+
+      return {
+        id: dept.departmentId || index,
+        name: dept.departmentName || 'General',
+        count,
+        percent: Math.round(percent * 10) / 10,
+        color: DONUT_COLORS[index % DONUT_COLORS.length],
+        strokeDasharray,
+        strokeDashoffset,
+        labelX,
+        labelY,
+      };
+    });
+
   return (
-    <div className="bg-[#0d1527] rounded-2xl p-5 border border-slate-800/80 shadow-lg flex flex-col justify-between min-h-[340px]">
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/30">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">
-                {t('deptDistributionTitle')}
-              </h3>
-              <p className="text-xs text-slate-400">
-                {t('deptDistributionSubtitle')}
-              </p>
-            </div>
-          </div>
-          <span className="text-xs font-bold px-2 py-1 bg-slate-800 text-slate-300 rounded-lg border border-slate-700/60">
-            {totalHeadcount} {t('staffCount')}
-          </span>
+    <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between h-full min-h-[340px]">
+      <div className="flex items-center justify-between mb-2">
+        <div>
+          <h3 className="text-[15px] font-semibold text-slate-900">
+            {t('deptDistributionTitle')}
+          </h3>
         </div>
-
-        {isLoading ? (
-          <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
-            <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-            <span>{t('loading')}</span>
-          </div>
-        ) : departments.length === 0 ? (
-          <div className="py-12 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-2">
-            <Layers className="w-8 h-8 text-slate-600 stroke-[1.5]" />
-            <p>
-              {lang === 'km'
-                ? 'មិនទាន់មានដេប៉ាតឺម៉ង់នៅក្នុងប្រព័ន្ធនៅឡើយទេ'
-                : 'No departments recorded in the system yet.'}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3.5 mt-4">
-            {departments.map((dept, index) => {
-              const count = Number(dept.headcount) || 0;
-              const percentage =
-                totalHeadcount > 0 ? Math.round((count / totalHeadcount) * 100) : 0;
-              const barColor = BAR_COLORS[index % BAR_COLORS.length];
-
-              return (
-                <div key={dept.departmentId || index} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-slate-200">
-                      {dept.departmentName}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400">
-                        {count} {t('members')}
-                      </span>
-                      <span className="font-semibold text-white">
-                        {percentage}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Progress Bar Track */}
-                  <div className="h-2 w-full bg-slate-800/90 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${barColor} rounded-full transition-all duration-500`}
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <span className="text-xs font-medium px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md">
+          {totalHeadcount} {t('staffCount')}
+        </span>
       </div>
+
+      {isLoading ? (
+        <div className="py-16 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+          <span>{t('loading')}</span>
+        </div>
+      ) : segments.length === 0 ? (
+        <div className="py-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center gap-2">
+          <Layers className="w-8 h-8 text-slate-300 stroke-[1.5]" />
+          <p>
+            {lang === 'km'
+              ? 'មិនទាន់មានដេប៉ាតឺម៉ង់នៅក្នុងប្រព័ន្ធនៅឡើយទេ'
+              : 'No departments recorded in the system yet.'}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center my-auto py-2">
+          {/* Donut Chart SVG */}
+          <div className="relative w-52 h-52">
+            <svg viewBox="0 0 200 200" className="w-full h-full">
+              {segments.map((seg) => (
+                <circle
+                  key={seg.id}
+                  cx="100"
+                  cy="100"
+                  r={radius}
+                  fill="transparent"
+                  stroke={seg.color}
+                  strokeWidth="38"
+                  strokeDasharray={seg.strokeDasharray}
+                  strokeDashoffset={seg.strokeDashoffset}
+                  transform="rotate(-90 100 100)"
+                  className="transition-all duration-500 hover:opacity-90"
+                />
+              ))}
+
+              {/* Subtle white separator ring & labels */}
+              {segments.map((seg) =>
+                seg.percent >= 7 ? (
+                  <text
+                    key={`lbl-${seg.id}`}
+                    x={seg.labelX}
+                    y={seg.labelY}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    className="fill-white text-[9.5px] font-bold pointer-events-none"
+                  >
+                    {seg.percent.toFixed(1)}%
+                  </text>
+                ) : null
+              )}
+            </svg>
+          </div>
+
+          {/* Horizontal Dot Legend */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mt-4">
+            {segments.map((seg) => (
+              <div key={`leg-${seg.id}`} className="flex items-center gap-1.5 text-xs text-slate-600">
+                <span
+                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  style={{ backgroundColor: seg.color }}
+                />
+                <span className="font-medium truncate max-w-[110px]" title={`${seg.name}: ${seg.count}`}>
+                  {seg.name}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

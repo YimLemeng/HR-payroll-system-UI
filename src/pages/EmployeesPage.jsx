@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import axiosClient from '../api/axiosClient';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
@@ -22,7 +21,8 @@ import {
   UserX,
   Clock,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  ArrowUpDown
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -55,7 +55,6 @@ const initialFormState = {
 
 const EmployeesPage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
 
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -101,7 +100,7 @@ const EmployeesPage = () => {
         if (selectedStatus) params.append('status', selectedStatus);
       }
 
-      params.append('size', '50');
+      params.append('size', '1000');
       const url = `${endpoint}?${params.toString()}`;
       const res = await axiosClient.get(url);
 
@@ -111,6 +110,7 @@ const EmployeesPage = () => {
     } catch (err) {
       console.error('Failed to fetch employees:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, [searchKeyword, selectedDept, selectedStatus]);
@@ -202,61 +202,80 @@ const EmployeesPage = () => {
       employmentStatus: formData.employmentStatus
     };
 
-    const loadingText = modalMode === 'create'
-      ? (lang === 'km' ? 'កំពុងបង្កើតបុគ្គលិកថ្មី...' : 'Creating employee record...')
-      : (lang === 'km' ? 'កំពុងរក្សាទុកព័ត៌មានបុគ្គលិក...' : 'Updating employee details...');
-
-    await withLoading(loadingText, async () => {
-      try {
-        if (modalMode === 'create') {
-          await axiosClient.post('/employees', payload);
-        } else {
-          await axiosClient.put(`/employees/${editingId}`, payload);
-        }
-
-        setIsModalOpen(false);
-        setFeedbackMessage(
-          lang === 'km'
-            ? 'បានរក្សាទុកព័ត៌មានបុគ្គលិកដោយជោគជ័យ!'
-            : 'Employee record saved successfully!'
-        );
-        fetchEmployees(true);
-        setTimeout(() => setFeedbackMessage(null), 4000);
-      } catch (err) {
-        const errorMsg =
-          err.response?.data?.message ||
-          (err.response?.data?.validationErrors
-            ? Object.values(err.response.data.validationErrors).join(', ')
-            : 'Failed to save employee. Please check inputs.');
-        alert(`Error: ${errorMsg}`);
+    try {
+      if (modalMode === 'create') {
+        await axiosClient.post('/employees', payload);
+      } else {
+        await axiosClient.put(`/employees/${editingId}`, payload);
       }
-    }, 600);
+
+      setIsModalOpen(false);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានរក្សាទុកព័ត៌មានបុគ្គលិកដោយជោគជ័យ!'
+          : 'Employee record saved successfully!'
+      );
+      fetchEmployees(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      const errorMsg =
+        err.response?.data?.message ||
+        (err.response?.data?.validationErrors
+          ? Object.values(err.response.data.validationErrors).join(', ')
+          : 'Failed to save employee. Please check inputs.');
+      alert(`Error: ${errorMsg}`);
+    }
   };
 
   const handleQuickStatusChange = async (emp, newStatus) => {
     if (emp.employmentStatus === newStatus) return;
 
-    await withLoading(
-      lang === 'km' ? `កំពុងកែប្រែស្ថានភាពទៅជា ${newStatus}...` : `Updating status to ${newStatus}...`,
-      async () => {
-        try {
-          await axiosClient.patch(`/employees/${emp.id}/status`, {
-            employmentStatus: newStatus
-          });
-          fetchEmployees(true);
-          setFeedbackMessage(
-            lang === 'km'
-              ? `បានកែប្រែស្ថានភាព ${emp.fullName || emp.firstName} ដោយជោគជ័យ!`
-              : `Status updated successfully for ${emp.fullName || emp.firstName}!`
-          );
-          setTimeout(() => setFeedbackMessage(null), 4000);
-        } catch (err) {
-          alert(err.response?.data?.message || 'Failed to update status');
-        }
-      },
-      500
-    );
+    try {
+      await axiosClient.patch(`/employees/${emp.id}/status`, {
+        employmentStatus: newStatus
+      });
+      fetchEmployees(true);
+      setFeedbackMessage(
+        lang === 'km'
+          ? `បានកែប្រែស្ថានភាព ${emp.fullName || emp.firstName} ដោយជោគជ័យ!`
+          : `Status updated successfully for ${emp.fullName || emp.firstName}!`
+      );
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update status');
+    }
   };
+
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
+  const sortedEmployees = [...employees].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+    const dir = sortConfig.direction === 'asc' ? 1 : -1;
+    let valA = a[sortConfig.key] ?? '';
+    let valB = b[sortConfig.key] ?? '';
+    if (sortConfig.key === 'fullName') {
+      valA = a.fullName || `${a.firstName || ''} ${a.lastName || ''}`;
+      valB = b.fullName || `${b.firstName || ''} ${b.lastName || ''}`;
+    }
+    if (sortConfig.key === 'basicSalary') {
+      return (Number(valA) - Number(valB)) * dir;
+    }
+    return String(valA).localeCompare(String(valB)) * dir;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedEmployees.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIdx = (safePage - 1) * rowsPerPage;
+  const paginatedEmployees = sortedEmployees.slice(startIdx, startIdx + rowsPerPage);
 
   const getStatusBadge = (status) => {
     const config = STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
@@ -277,29 +296,28 @@ const EmployeesPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/15 text-blue-400 flex items-center justify-center border border-blue-500/30 shadow-md shadow-blue-500/10">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">
-                {t('employeesTitle')}
-              </h1>
-              <p className="text-xs text-slate-400">
-                {t('employeesSubtitle')} ({totalCount} {lang === 'km' ? 'នាក់' : 'records'})
-              </p>
-            </div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('employeesTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ធនធានមនុស្ស' : 'Workforce'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">
+              {t('navEmployees')} ({totalCount})
+            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchEmployees()}
@@ -308,7 +326,7 @@ const EmployeesPage = () => {
           </Button>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={Plus}
             onClick={handleOpenCreateModal}
           >
@@ -319,77 +337,76 @@ const EmployeesPage = () => {
 
       {/* Success Feedback Alert */}
       {feedbackMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-medium animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-medium animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{feedbackMessage}</span>
         </div>
       )}
 
-      {/* Filter and Search Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 shadow-md">
-        {/* Search Input */}
-        <form onSubmit={handleSearchSubmit} className="sm:col-span-5 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            placeholder={t('searchEmployeesPlaceholder')}
-            className="w-full pl-10 pr-4 py-2 bg-[#080d1a] border border-slate-700/70 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-          />
-        </form>
+      {/* Unified White Table Card with Integrated Toolbar (Admindek Style) */}
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+        {/* Integrated Filter & Search Toolbar */}
+        <div className="p-4 sm:px-6 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-12 gap-3 bg-white">
+          {/* Search Input */}
+          <form onSubmit={handleSearchSubmit} className="sm:col-span-5 relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder={t('searchEmployeesPlaceholder')}
+              className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+          </form>
 
-        {/* Department Filter */}
-        <div className="sm:col-span-4">
-          <select
-            value={selectedDept}
-            onChange={(e) => setSelectedDept(e.target.value)}
-            className="w-full px-3 py-2 bg-[#080d1a] border border-slate-700/70 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition-colors"
-          >
-            <option value="">{t('filterDepartment')}</option>
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
-                {dept.departmentName}
-              </option>
-            ))}
-          </select>
+          {/* Department Filter */}
+          <div className="sm:col-span-4">
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              <option value="">{t('filterDepartment')}</option>
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id}>
+                  {dept.departmentName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="sm:col-span-3">
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              <option value="">{t('filterStatus')}</option>
+              {STATUS_OPTIONS.map((st) => (
+                <option key={st.value} value={st.value}>
+                  {lang === 'km' ? st.labelKm : st.labelEn}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        {/* Status Filter */}
-        <div className="sm:col-span-3">
-          <select
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full px-3 py-2 bg-[#080d1a] border border-slate-700/70 rounded-xl text-sm text-slate-300 focus:outline-none focus:border-blue-500 transition-colors"
-          >
-            <option value="">{t('filterStatus')}</option>
-            {STATUS_OPTIONS.map((st) => (
-              <option key={st.value} value={st.value}>
-                {lang === 'km' ? st.labelKm : st.labelEn}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Main Table / Empty State Card */}
-      <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
         {isLoading ? (
           <div className="py-24 text-center space-y-3">
-            <RefreshCw className="w-8 h-8 text-blue-400 animate-spin mx-auto" />
-            <p className="text-sm text-slate-400">{t('loading')}</p>
+            <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+            <p className="text-sm text-slate-500">{t('loading')}</p>
           </div>
         ) : employees.length === 0 ? (
           /* Rich Empty State */
           <div className="py-20 px-6 text-center flex flex-col items-center justify-center space-y-4">
-            <div className="w-16 h-16 rounded-2xl bg-slate-800/60 border border-slate-700/70 text-slate-400 flex items-center justify-center shadow-inner">
+            <div className="w-16 h-16 rounded-2xl bg-slate-100 border border-slate-200 text-slate-400 flex items-center justify-center">
               <Users className="w-8 h-8" />
             </div>
             <div className="max-w-md">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-slate-900">
                 {t('noEmployeesFound')}
               </h3>
-              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
                 {t('noEmployeesSubtitle')}
               </p>
             </div>
@@ -403,89 +420,92 @@ const EmployeesPage = () => {
             </Button>
           </div>
         ) : (
-          /* Real Data Table */
+          /* Real Data Table (Clean DataTable Style) */
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-[#080d1a] text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
                 <tr>
-                  <th className="py-3.5 px-4">{t('employeeCode')}</th>
-                  <th className="py-3.5 px-4">{t('fullName')}</th>
-                  <th className="py-3.5 px-4">{t('department')}</th>
-                  <th className="py-3.5 px-4">{t('jobTitle')}</th>
-                  <th className="py-3.5 px-4">{t('basicSalary')}</th>
-                  <th className="py-3.5 px-4">{t('employmentStatus')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('actions')}</th>
+                  {[
+                    { key: 'employeeCode', label: t('employeeCode') },
+                    { key: 'fullName', label: t('fullName') },
+                    { key: 'departmentName', label: t('department') },
+                    { key: 'jobTitle', label: t('jobTitle') },
+                    { key: 'basicSalary', label: t('basicSalary') },
+                    { key: 'employmentStatus', label: t('employmentStatus') },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="py-3.5 px-5 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                    >
+                      <div className="inline-flex items-center gap-1.5">
+                        <span>{col.label}</span>
+                        <ArrowUpDown
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                          }`}
+                        />
+                      </div>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-5 text-right whitespace-nowrap">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {employees.map((emp) => {
-                  const initials = `${emp.firstName?.[0] || ''}${emp.lastName?.[0] || ''}`.toUpperCase() || 'EM';
+              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                {paginatedEmployees.map((emp) => {
+                  const fullName = emp.fullName || `${emp.firstName || ''} ${emp.lastName || ''}`.trim();
                   return (
                     <tr
                       key={emp.id}
-                      className="hover:bg-slate-800/30 transition-colors group"
+                      className="hover:bg-slate-50/70 transition-colors group"
                     >
                       {/* Code */}
-                      <td className="py-3.5 px-4 font-mono text-xs font-semibold text-blue-400">
+                      <td className="py-3 px-5 font-mono text-xs text-slate-500 whitespace-nowrap">
                         {emp.employeeCode}
                       </td>
 
-                      {/* Employee Avatar & Name */}
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                            {initials}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-white">
-                              {emp.fullName || `${emp.firstName} ${emp.lastName}`}
-                            </div>
-                            <div className="text-xs text-slate-400">
-                              {emp.email || emp.phone || '—'}
-                            </div>
-                          </div>
-                        </div>
+                      {/* Full Name */}
+                      <td className="py-3 px-5 font-medium text-slate-800 whitespace-nowrap">
+                        {fullName}
                       </td>
 
                       {/* Department */}
-                      <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg text-xs bg-slate-800 text-slate-300 border border-slate-700/60 font-medium">
-                          <Building2 className="w-3 h-3 text-slate-400" />
-                          {emp.departmentName || 'General'}
-                        </span>
+                      <td className="py-3 px-5 text-slate-700 whitespace-nowrap">
+                        {emp.departmentName || 'General'}
                       </td>
 
                       {/* Job Title */}
-                      <td className="py-3.5 px-4 font-medium text-slate-200">
-                        {emp.jobTitle}
+                      <td className="py-3 px-5 text-slate-500 whitespace-nowrap">
+                        {emp.jobTitle || '—'}
                       </td>
 
                       {/* Basic Salary */}
-                      <td className="py-3.5 px-4 font-mono font-semibold text-emerald-400">
+                      <td className="py-3 px-5 font-semibold text-slate-800 whitespace-nowrap">
                         ${Number(emp.basicSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-5 whitespace-nowrap">
                         {getStatusBadge(emp.employmentStatus)}
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 text-right">
+                      <td className="py-3 px-5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1.5">
                           <button
                             title={t('view')}
                             onClick={() => setViewingEmployee(emp)}
-                            className="p-1.5 rounded-lg bg-slate-800/70 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                            className="px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-medium inline-flex items-center gap-1 transition-colors"
                           >
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>{t('view')}</span>
                           </button>
                           <button
                             title={t('edit')}
                             onClick={() => handleOpenEditModal(emp)}
-                            className="p-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 hover:text-blue-300 transition-colors"
+                            className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                           >
-                            <Edit3 className="w-4 h-4" />
+                            <Edit3 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -494,6 +514,69 @@ const EmployeesPage = () => {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Footer */}
+        {!isLoading && sortedEmployees.length > 0 && (
+          <div className="px-6 py-3.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500 bg-white">
+            <span>
+              {lang === 'km'
+                ? `បង្ហាញ ${startIdx + 1}-${startIdx + paginatedEmployees.length} នៃ ${sortedEmployees.length} ទិន្នន័យ`
+                : `Showing ${startIdx + 1}-${startIdx + paginatedEmployees.length} of ${sortedEmployees.length} results`}
+            </span>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span>{lang === 'km' ? 'ជួរ' : 'Rows'}</span>
+                <select
+                  value={rowsPerPage}
+                  onChange={(e) => {
+                    setRowsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 rounded-md border border-slate-200 text-xs text-slate-700 bg-white"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  disabled={safePage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {lang === 'km' ? 'មុន' : 'Previous'}
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    type="button"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
+                      pageNum === safePage
+                        ? 'bg-blue-600 text-white'
+                        : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {lang === 'km' ? 'បន្ទាប់' : 'Next'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

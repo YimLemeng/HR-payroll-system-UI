@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import axiosClient from '../api/axiosClient';
+import { useTableSort } from '../utils/useTableSort';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
 import {
@@ -16,7 +16,8 @@ import {
   AlertCircle,
   X,
   CheckCircle2,
-  Users
+  Users,
+  ArrowUpDown
 } from 'lucide-react';
 
 const ATTENDANCE_STATUSES = [
@@ -29,7 +30,6 @@ const ATTENDANCE_STATUSES = [
 
 const AttendancePage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
@@ -96,6 +96,7 @@ const AttendancePage = () => {
     } catch (err) {
       console.error('Failed to fetch attendance data:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, [filterDate, selectedMonth, selectedYear]);
@@ -171,30 +172,24 @@ const AttendancePage = () => {
       remarks: formData.remarks.trim() || null
     };
 
-    const loadingText = modalMode === 'create'
-      ? (lang === 'km' ? 'កំពុងកត់ត្រាវត្តមាន...' : 'Recording attendance...')
-      : (lang === 'km' ? 'កំពុងកែសម្រួលកំណត់ត្រាវត្តមាន...' : 'Updating attendance record...');
-
-    await withLoading(loadingText, async () => {
-      try {
-        if (modalMode === 'create') {
-          await axiosClient.post('/attendance', payload);
-        } else {
-          await axiosClient.put(`/attendance/${editingId}`, payload);
-        }
-
-        setIsModalOpen(false);
-        setFeedbackMessage(
-          lang === 'km'
-            ? 'បានកត់ត្រាវត្តមានដោយជោគជ័យ!'
-            : 'Attendance recorded successfully!'
-        );
-        fetchAttendanceData(true);
-        setTimeout(() => setFeedbackMessage(null), 4000);
-      } catch (err) {
-        alert(err.response?.data?.message || 'Failed to record attendance. May be duplicate for this date.');
+    try {
+      if (modalMode === 'create') {
+        await axiosClient.post('/attendance', payload);
+      } else {
+        await axiosClient.put(`/attendance/${editingId}`, payload);
       }
-    }, 500);
+
+      setIsModalOpen(false);
+      setFeedbackMessage(
+        lang === 'km'
+          ? 'បានកត់ត្រាវត្តមានដោយជោគជ័យ!'
+          : 'Attendance recorded successfully!'
+      );
+      fetchAttendanceData(true);
+      setTimeout(() => setFeedbackMessage(null), 4000);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to record attendance. May be duplicate for this date.');
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -226,28 +221,37 @@ const AttendancePage = () => {
     }
   };
 
+  const { sortConfig, handleSort, sortedItems: sortedAttendances } = useTableSort(attendances, {
+    employeeName: (a) => a.employeeName || '',
+    attendanceDate: (a) => a.attendanceDate || '',
+    checkIn: (a) => a.checkIn || '',
+    checkOut: (a) => a.checkOut || '',
+    overtimeHours: (a) => Number(a.overtimeHours || 0),
+    status: (a) => a.status || '',
+    remarks: (a) => a.remarks || '',
+  });
+
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center border border-emerald-500/30 shadow-md shadow-emerald-500/10">
-            <CalendarCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {t('attendanceTitle')}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {t('attendanceSubtitle')}
-            </p>
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('attendanceTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ធនធានមនុស្ស' : 'Workforce'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">{t('navAttendance')}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchAttendanceData()}
@@ -256,7 +260,7 @@ const AttendancePage = () => {
           </Button>
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={Plus}
             onClick={handleOpenCreateModal}
           >
@@ -267,87 +271,83 @@ const AttendancePage = () => {
 
       {/* Success Notification */}
       {feedbackMessage && (
-        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-sm font-medium animate-in fade-in duration-200">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="flex items-center gap-2 p-4 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-sm font-medium animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
           <span>{feedbackMessage}</span>
         </div>
       )}
 
-      {/* Monthly Summary Metric Pills */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 text-center">
-          <span className="text-xs text-slate-400 block mb-1">{t('presentCount')}</span>
-          <span className="text-xl font-bold text-emerald-400">{summary.presentCount || 0}</span>
-        </div>
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 text-center">
-          <span className="text-xs text-slate-400 block mb-1">{t('lateCount')}</span>
-          <span className="text-xl font-bold text-amber-400">{summary.lateCount || 0}</span>
-        </div>
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 text-center">
-          <span className="text-xs text-slate-400 block mb-1">{t('absentCount')}</span>
-          <span className="text-xl font-bold text-rose-400">{summary.absentCount || 0}</span>
-        </div>
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 text-center">
-          <span className="text-xs text-slate-400 block mb-1">{t('halfDayCount')}</span>
-          <span className="text-xl font-bold text-indigo-400">{summary.halfDayCount || 0}</span>
-        </div>
-        <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 text-center col-span-2 sm:col-span-1">
-          <span className="text-xs text-slate-400 block mb-1">{t('totalOvertime')}</span>
-          <span className="text-xl font-bold text-blue-400">{summary.totalOvertimeHours || 0}h</span>
-        </div>
+      {/* Monthly Summary Metric Cards (Admindek Style) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        {[
+          { label: t('presentCount'), value: summary.presentCount || 0, icon: UserCheck, iconBg: 'bg-emerald-50 text-emerald-600' },
+          { label: t('lateCount'), value: summary.lateCount || 0, icon: Clock, iconBg: 'bg-amber-50 text-amber-600' },
+          { label: t('absentCount'), value: summary.absentCount || 0, icon: UserX, iconBg: 'bg-rose-50 text-rose-600' },
+          { label: t('halfDayCount'), value: summary.halfDayCount || 0, icon: CalendarCheck, iconBg: 'bg-indigo-50 text-indigo-600' },
+          { label: t('totalOvertime'), value: `${summary.totalOvertimeHours || 0}h`, icon: Clock, iconBg: 'bg-blue-50 text-blue-600', span: 'col-span-2 sm:col-span-1' },
+        ].map((card) => {
+          const CardIcon = card.icon;
+          return (
+            <div key={card.label} className={`bg-white border border-slate-200/80 rounded-xl p-4 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex items-start justify-between ${card.span || ''}`}>
+              <div>
+                <span className="text-xs font-medium text-slate-500 block">{card.label}</span>
+                <span className="text-2xl font-bold text-slate-900 mt-1 block">{card.value}</span>
+              </div>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${card.iconBg}`}>
+                <CardIcon className="w-4 h-4" />
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Date Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-4 shadow-sm">
-        <div className="flex items-center gap-2.5">
-          <Calendar className="w-5 h-5 text-blue-400" />
-          <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">{t('filterDate')}:</span>
-          <input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-emerald-500 transition-colors shadow-sm"
-          />
-          {filterDate && (
-            <button
-              onClick={() => setFilterDate('')}
-              className="text-xs text-slate-400 hover:text-white underline ml-1"
+      {/* Unified White Table Card with Integrated Filter Toolbar */}
+      <div className="bg-white border border-slate-200/80 rounded-xl overflow-hidden shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+        <div className="p-4 sm:px-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-white">
+          <div className="flex items-center gap-2.5">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500">{t('filterDate')}:</span>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            />
+            {filterDate && (
+              <button
+                onClick={() => setFilterDate('')}
+                className="text-xs text-slate-500 hover:text-slate-800 underline ml-1"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700">
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
             >
-              Clear
-            </button>
-          )}
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m}>
+                  {lang === 'km' ? `ខែ ${m}` : `Month ${m}`}
+                </option>
+              ))}
+            </select>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
+            >
+              {[2024, 2025, 2026, 2027].map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2.5 text-sm text-slate-200">
-          <span className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t('month')}:</span>
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-emerald-500 transition-colors shadow-sm"
-          >
-            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-              <option key={m} value={m}>
-                {lang === 'km' ? `ខែ ${m}` : `Month ${m}`}
-              </option>
-            ))}
-          </select>
-          <span className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t('year')}:</span>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-emerald-500 transition-colors shadow-sm"
-          >
-            {[2024, 2025, 2026, 2027].map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Attendance Records Table */}
-      <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl">
         {isLoading ? (
           <div className="py-24 text-center space-y-3">
             <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin mx-auto" />
@@ -377,55 +377,72 @@ const AttendancePage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-[#080d1a] text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800/80">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
                 <tr>
-                  <th className="py-3.5 px-4">{t('colEmployee')}</th>
-                  <th className="py-3.5 px-4">{t('colDate')}</th>
-                  <th className="py-3.5 px-4">{t('checkInTime')}</th>
-                  <th className="py-3.5 px-4">{t('checkOutTime')}</th>
-                  <th className="py-3.5 px-4">{t('overtimeHours')}</th>
-                  <th className="py-3.5 px-4">{t('colStatus')}</th>
-                  <th className="py-3.5 px-4">{t('remarks')}</th>
-                  <th className="py-3.5 px-4 text-right">{t('actions')}</th>
+                  {[
+                    { key: 'employeeName', label: t('colEmployee') },
+                    { key: 'attendanceDate', label: t('colDate') },
+                    { key: 'checkIn', label: t('checkInTime') },
+                    { key: 'checkOut', label: t('checkOutTime') },
+                    { key: 'overtimeHours', label: t('overtimeHours') },
+                    { key: 'status', label: t('colStatus') },
+                    { key: 'remarks', label: t('remarks') },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSort(col.key)}
+                      className="py-3.5 px-5 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {col.label}
+                        <ArrowUpDown
+                          className={`w-3.5 h-3.5 transition-colors ${
+                            sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                          }`}
+                        />
+                      </span>
+                    </th>
+                  ))}
+                  <th className="py-3.5 px-5 text-right whitespace-nowrap">{t('actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {attendances.map((att) => (
-                  <tr key={att.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-white">
+              <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                {sortedAttendances.map((att) => (
+                  <tr key={att.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-5 whitespace-nowrap">
+                      <div className="font-medium text-slate-800">
                         {att.employeeName || `Employee #${att.employeeId}`}
                       </div>
-                      <div className="text-xs font-mono text-blue-400">
+                      <div className="text-xs font-mono text-slate-400">
                         {att.employeeCode || `ID: ${att.employeeId}`}
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-slate-300">
+                    <td className="py-3 px-5 font-mono text-xs text-slate-500 whitespace-nowrap">
                       {att.attendanceDate}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-emerald-400">
+                    <td className="py-3 px-5 font-mono text-xs text-slate-700 whitespace-nowrap">
                       {formatTimeOnly(att.checkIn)}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-blue-400">
+                    <td className="py-3 px-5 font-mono text-xs text-slate-700 whitespace-nowrap">
                       {formatTimeOnly(att.checkOut)}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-xs text-amber-400">
+                    <td className="py-3 px-5 font-semibold text-slate-800 whitespace-nowrap">
                       {att.overtimeHours ? `${att.overtimeHours}h` : '0h'}
                     </td>
-                    <td className="py-3.5 px-4">
+                    <td className="py-3 px-5 whitespace-nowrap">
                       {getStatusBadge(att.status)}
                     </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-400 max-w-xs truncate">
+                    <td className="py-3 px-5 text-xs text-slate-500 max-w-xs truncate">
                       {att.remarks || '—'}
                     </td>
-                    <td className="py-3.5 px-4 text-right">
+                    <td className="py-3 px-5 text-right whitespace-nowrap">
                       <button
                         title={t('edit')}
                         onClick={() => handleOpenEditModal(att)}
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                        className="p-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
                       >
-                        <Edit3 className="w-4 h-4" />
+                        <Edit3 className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>

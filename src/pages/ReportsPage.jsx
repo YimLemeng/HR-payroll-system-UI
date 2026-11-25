@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { useLoading } from '../context/LoadingContext';
 import { useAuth } from '../context/AuthContext';
 import axiosClient from '../api/axiosClient';
+import { useTableSort } from '../utils/useTableSort';
 import Button from '../components/common/Button';
 import ModalPortal from '../components/common/ModalPortal';
 import A4ReportDocument from '../components/reports/A4ReportDocument';
@@ -16,12 +16,12 @@ import {
   Calendar,
   Printer,
   Download,
-  X
+  X,
+  ArrowUpDown
 } from 'lucide-react';
 
 const ReportsPage = () => {
   const { t, lang } = useLanguage();
-  const { withLoading } = useLoading();
   const { user } = useAuth();
 
   const now = new Date();
@@ -34,6 +34,13 @@ const ReportsPage = () => {
   const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+
+  const { sortConfig, handleSort, sortedItems: sortedDeptHeadcounts } = useTableSort(deptHeadcounts, {
+    departmentName: (d) => d.departmentName || '',
+    headcount: (d) => Number(d.headcount ?? d.employeeCount ?? 0),
+    totalBasicSalary: (d) => Number(d.totalBasicSalary || 0),
+    averageBasicSalary: (d) => Number(d.averageBasicSalary ?? d.averageSalary ?? 0),
+  });
 
   const fetchReports = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true);
@@ -52,6 +59,7 @@ const ReportsPage = () => {
     } catch (err) {
       console.error('Failed to load reports:', err);
     } finally {
+      await new Promise((r) => setTimeout(r, 350));
       setIsLoading(false);
     }
   }, [selectedMonth, selectedYear]);
@@ -150,7 +158,7 @@ const ReportsPage = () => {
               padding: 0;
               background: #ffffff !important;
               color: #0f172a !important;
-              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              font-family: "Inter", "Khmer OS Battambang", "Battambang", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
               width: 100%;
             }
             #a4-printable-document {
@@ -190,30 +198,30 @@ const ReportsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center border border-indigo-500/30 shadow-md shadow-indigo-500/10">
-            <FileBarChart2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">
-              {t('reportsTitle')}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {t('reportsSubtitle')}
-            </p>
+    <div className="space-y-5">
+      {/* Top Page Title, Breadcrumb & Actions (Admindek Style) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            {t('reportsTitle')}
+          </h1>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+            <span>{t('navDashboard')}</span>
+            <span>/</span>
+            <span>{lang === 'km' ? 'ប្រាក់បៀវត្ស & របាយការណ៍' : 'Payroll & Reports'}</span>
+            <span>/</span>
+            <span className="text-slate-700 font-medium">
+              {t('navReports')} ({selectedMonth}/{selectedYear})
+            </span>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2.5 text-sm text-slate-200">
-            <Calendar className="w-5 h-5 text-blue-400" />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-700">
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
             >
               {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
                 <option key={m} value={m}>
@@ -224,7 +232,7 @@ const ReportsPage = () => {
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-3.5 py-2 bg-[#080d1a] border border-slate-700/80 hover:border-slate-600 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-blue-500 transition-colors shadow-sm"
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm font-medium text-slate-700 focus:outline-none focus:border-blue-500 transition-colors"
             >
               {[2024, 2025, 2026, 2027].map((y) => (
                 <option key={y} value={y}>
@@ -236,7 +244,7 @@ const ReportsPage = () => {
 
           <Button
             variant="outline"
-            size="md"
+            size="sm"
             icon={RefreshCw}
             isLoading={isLoading}
             onClick={() => fetchReports()}
@@ -244,13 +252,11 @@ const ReportsPage = () => {
             {t('syncData')}
           </Button>
 
-          {/* Export Button */}
           <Button
             variant="primary"
-            size="md"
+            size="sm"
             icon={Download}
             onClick={() => setIsExportModalOpen(true)}
-            className="shadow-lg shadow-blue-600/20 font-semibold"
           >
             Export
           </Button>
@@ -258,6 +264,12 @@ const ReportsPage = () => {
       </div>
 
       {/* Grid: 4 Report Sections */}
+      {isLoading ? (
+        <div className="py-24 text-center space-y-3 bg-white border border-slate-200/80 rounded-xl shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto" />
+          <p className="text-sm text-slate-500">{t('loading')}</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* SECTION 1: Workforce Status Breakdown */}
         <div className="bg-[#0d1527] border border-slate-800/80 rounded-2xl p-5 shadow-lg space-y-4">
@@ -372,32 +384,49 @@ const ReportsPage = () => {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="bg-[#080d1a] text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-white text-[13px] font-semibold text-slate-600 border-b border-slate-200/80">
                   <tr>
-                    <th className="py-3 px-4">{t('colDepartment')}</th>
-                    <th className="py-3 px-4">{t('headcount')}</th>
-                    <th className="py-3 px-4">Total Basic Salary</th>
-                    <th className="py-3 px-4">Average Salary</th>
+                    {[
+                      { key: 'departmentName', label: t('colDepartment') },
+                      { key: 'headcount', label: t('headcount') },
+                      { key: 'totalBasicSalary', label: 'Total Basic Salary' },
+                      { key: 'averageBasicSalary', label: 'Average Salary' },
+                    ].map((col) => (
+                      <th
+                        key={col.key}
+                        onClick={() => handleSort(col.key)}
+                        className="py-3.5 px-5 cursor-pointer select-none hover:text-slate-900 transition-colors whitespace-nowrap"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          {col.label}
+                          <ArrowUpDown
+                            className={`w-3.5 h-3.5 transition-colors ${
+                              sortConfig.key === col.key ? 'text-blue-600' : 'text-slate-300'
+                            }`}
+                          />
+                        </span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {deptHeadcounts.map((dept) => {
+                <tbody className="divide-y divide-slate-100 text-[13.5px]">
+                  {sortedDeptHeadcounts.map((dept) => {
                     const count = Number(dept.headcount ?? dept.employeeCount ?? 0);
                     const avgSal = Number(dept.averageBasicSalary ?? dept.averageSalary ?? 0);
 
                     return (
-                      <tr key={dept.departmentId} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="py-3 px-4 font-semibold text-white">
+                      <tr key={dept.departmentId} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-5 font-medium text-slate-800 whitespace-nowrap">
                           {dept.departmentName}
                         </td>
-                        <td className="py-3 px-4 font-mono text-xs text-blue-400">
+                        <td className="py-3 px-5 text-slate-500 whitespace-nowrap">
                           {count} {lang === 'km' ? 'នាក់' : 'staff'}
                         </td>
-                        <td className="py-3 px-4 font-mono text-xs text-emerald-400">
+                        <td className="py-3 px-5 font-semibold text-slate-800 whitespace-nowrap">
                           ${Number(dept.totalBasicSalary || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
-                        <td className="py-3 px-4 font-mono text-xs text-purple-400">
+                        <td className="py-3 px-5 text-slate-700 whitespace-nowrap">
                           ${avgSal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </td>
                       </tr>
@@ -409,6 +438,7 @@ const ReportsPage = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* A4 Report Export / Print Preview Modal */}
       {isExportModalOpen && (

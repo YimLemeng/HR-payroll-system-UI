@@ -22,11 +22,11 @@ const Button = ({
   };
 
   const variantStyles = {
-    primary: 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 border border-blue-400/30',
-    secondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/80',
-    danger: 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/25 border border-rose-400/30',
-    outline: 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white border border-slate-700/80 shadow-sm',
-    ghost: 'bg-transparent hover:bg-slate-800/60 text-slate-400 hover:text-white',
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-600/20 border border-blue-600',
+    secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200',
+    danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm shadow-rose-600/20 border border-rose-600',
+    outline: 'bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200 shadow-sm',
+    ghost: 'bg-transparent hover:bg-slate-100 text-slate-600 hover:text-slate-900',
   };
 
   return (

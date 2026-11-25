@@ -39,9 +39,9 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
         <div 
-          className="relative w-full max-w-md bg-[#0d1527] rounded-3xl shadow-2xl border border-slate-700/80 overflow-hidden text-slate-100 my-auto"
+          className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden text-slate-800 my-auto"
           onClick={(e) => e.stopPropagation()}
         >
         {/* Subtle top light bar */}
@@ -51,27 +51,27 @@ const LogoutConfirmModal = ({ isOpen, onClose }) => {
         <button
           onClick={onClose}
           disabled={isLoggingOut}
-          className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
+          className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="p-6 sm:p-7">
           {/* Icon Badge */}
-          <div className="w-12 h-12 mb-4 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center border border-rose-500/30 shadow-lg shadow-rose-500/10">
+          <div className="w-12 h-12 mb-4 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-200">
             <LogOut className="w-6 h-6" />
           </div>
 
           {/* Title & Message */}
-          <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
+          <h3 className="text-xl font-bold text-slate-900 mb-2 tracking-tight">
             {t('logoutModalTitle')}
           </h3>
-          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed mb-6">
+          <p className="text-xs sm:text-sm text-slate-500 leading-relaxed mb-6">
             {t('logoutModalMessage')}
           </p>
 
           {/* Action Buttons: Yes / No */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/80">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
             <Button
               variant="outline"
               onClick={onClose}
