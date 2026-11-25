@@ -1,4 +1,4 @@
-# HR & Payroll Management System - Modern UI
+# HR & Payroll Management System — Modern UI
 
 Enterprise-grade, responsive React Single-Page Application (SPA) designed for the **Spring Boot & PostgreSQL HR & Payroll Management System**.
 
@@ -21,25 +21,29 @@ Experience the live application deployed on Cloudflare Workers / Pages:
 
 ## ✨ Features & Modules
 
-- **📊 Executive Dashboard**: Real-time staff metrics, attendance rate, monthly payroll estimation, department headcount distribution, and live clock-in streams.
-- **👥 Employee Directory**: Complete staff profiles, salary management, department assignments, status tracking, and intuitive creation/editing modals.
-- **🏢 Department Management**: Organizational divisions, staff count indicators, and departmental basic salary breakdowns.
-- **🕒 Attendance Tracking**: Daily attendance logs, check-in/out stamps, status monitoring (Present, Late, Absent, Half-Day), and overtime calculation.
-- **📅 Leave Requests**: Employee leave submissions, review/approval/rejection flows, cancel confirmation modals, and status badges.
+- **🎨 Modern Enterprise Layout**: Full-height dark slate sidebar (`#1c2434`), clean white top bar with `⌘K` Quick Search & Language Switcher, and a crisp light-gray (`#f4f7fa`) workspace canvas.
+- **📊 Executive Dashboard**:
+  - Real-time KPI sparkline cards (Total Employees, Present Today, On Leave, Est. Monthly Payroll).
+  - Interactive **Headcount Trend** line chart (`7d` / `30d` / `90d`), **Department Headcount** SVG donut chart, **Workforce Distribution** radial ring, and **Attendance This Week** bar chart.
+  - **Upcoming Events** combining live pending leave requests with monthly HR milestones, plus a live **Today's Attendance Stream** table with department enrichment, sorting, filtering, and pagination.
+- **👥 Employee Directory**: Complete staff profiles, salary management, department assignments, live search/filtering, column sorting (`↑↓`), pagination (`5`/`10`/`20`/`50` rows), and clean white modals.
+- **🏢 Department Management**: Clean sortable DataTable for organizational divisions, staff headcounts, descriptions, and CRUD modals.
+- **🕒 Attendance Tracking**: Daily attendance logs, check-in/out stamps, status monitoring (Present, Late, Absent, Half-Day), overtime calculation, and monthly summary cards.
+- **📅 Leave Requests**: Employee leave submissions, status filter tabs, review/approval/rejection flows, and cancellation modals.
 - **💰 Automated Payroll Processing**:
-  - Monthly automated wage calculation (Base Salary, 10% Allowance, 1.5x Overtime, 5% Deductions, 10% Tax, Net Pay).
+  - Monthly automated wage calculation (Base Salary, Allowances, Overtime, Bonus, Deductions, Tax, Net Pay).
   - Disbursement tracking (`CALCULATED`, `APPROVED`, `PAID`).
   - **Export to CSV**: UTF-8 BOM formatted spreadsheet download with individual employee lines and grand totals.
   - **A4 Print / Save as PDF**: Certified managerial payroll voucher formatted for standard A4 paper with corporate letterhead, 11-column schedule, and 3 formal corporate signature blocks.
-- **📈 Reports & Analytics**: Printable high-level managerial audits and CSV exports.
+- **📈 Reports & Analytics**: Printable high-level managerial audits, department salary breakdowns, and CSV exports.
 - **🛡️ User Administration (Admin Only)**: System user creation and role management (`ADMIN`, `HR`).
-- **🌐 Full Bilingual Support (🇰🇭 Khmer / 🇬🇧 English)**: Instant language toggle with typography optimized for Kantumruy Pro & Inter fonts.
+- **🌐 Full Bilingual Support (🇰🇭 Khmer / 🇬🇧 English)**: Instant language toggle (on both Login and Dashboard) with typography optimized for **Khmer OS Battambang** (with Google Font **Battambang** fallback) & **Inter**.
 - **🔒 Enterprise Security**:
+  - Split-screen production Login UI with clean light authentication form and 5-minute brute-force cooldown protection.
   - JWT Expiration Watchdog & client-side expiration validation.
   - Automated 30-minute inactivity session timeout.
   - Synchronized multi-tab session termination on logout.
   - Role-Based Access Control (RBAC) route guards.
-  - Brute-force rate limiting cooldown on login.
 
 ---
 
@@ -48,7 +52,7 @@ Experience the live application deployed on Cloudflare Workers / Pages:
 - **Framework**: React 18 (SPA)
 - **Build Tool**: Vite 6
 - **Routing**: React Router v7
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS 3.4
 - **Icons**: Lucide React
 - **HTTP Client**: Axios with centralized error handling & token injection
 - **Deployment**: Cloudflare Workers / Pages
