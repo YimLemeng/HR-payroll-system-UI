@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import BrandLogo from '../common/BrandLogo';
 import {
   LayoutDashboard,
   Users,
@@ -34,7 +33,7 @@ const Sidebar = ({ isCollapsed, onCollapse, onRequestLogout }) => {
 
   const navGroups = [
     {
-      title: lang === 'km' ? 'ទំព័រដើម' : 'NAVIGATION',
+      title: lang === 'km' ? 'ទិដ្ឋភាពទូទៅ' : 'OVERVIEW',
       items: [
         { id: 'dashboard', label: t('navDashboard'), icon: LayoutDashboard },
       ],
@@ -69,28 +68,32 @@ const Sidebar = ({ isCollapsed, onCollapse, onRequestLogout }) => {
 
   return (
     <aside
-      className={`bg-[#1c2434] text-slate-300 flex flex-col justify-between shrink-0 h-full select-none transition-all duration-300 z-30 border-r border-slate-800/40 ${
-        isCollapsed ? 'w-[76px]' : 'w-64'
+      className={`bg-[#222d32] text-[#b8c7ce] flex flex-col justify-between shrink-0 h-full select-none transition-all duration-300 z-30 ${
+        isCollapsed ? 'w-[68px]' : 'w-60'
       }`}
     >
-      {/* Top Brand Header inside Sidebar */}
-      <div className={`h-16 flex items-center border-b border-white/[0.06] shrink-0 ${isCollapsed ? 'justify-center px-2' : 'px-5 gap-3'}`}>
-        <BrandLogo size="sm" className="shadow-blue-500/25" />
+      {/* Classic AdminLTE Top Brand Block (#367fa9) */}
+      <button
+        type="button"
+        onClick={() => handleItemClick('dashboard')}
+        className={`h-14 w-full bg-[#367fa9] hover:bg-[#317399] transition-colors flex items-center shrink-0 cursor-pointer ${isCollapsed ? 'justify-center px-2' : 'px-4 gap-2.5'}`}
+      >
+        <div className="w-8 h-8 rounded bg-white/15 flex items-center justify-center text-white shrink-0">
+          <Users className="w-4 h-4" />
+        </div>
         {!isCollapsed && (
-          <div className="flex flex-col min-w-0">
-            <span className="font-bold text-base tracking-tight text-white truncate">
-              HR & Payroll
-            </span>
-          </div>
+          <span className="font-bold text-[15px] tracking-wide text-white truncate">
+            HR &amp; PAYROLL
+          </span>
         )}
-      </div>
+      </button>
 
-      {/* Grouped Navigation Links */}
-      <nav className="py-4 px-3 space-y-5 overflow-y-auto overflow-x-hidden flex-1">
+      {/* Classic Grouped Navigation */}
+      <nav className="py-2 overflow-y-auto overflow-x-hidden flex-1">
         {navGroups.map((group) => (
-          <div key={group.title} className="space-y-1">
+          <div key={group.title} className="mb-1">
             {!isCollapsed && (
-              <div className="px-3 pb-1.5 text-[10px] font-semibold tracking-wider text-slate-400/75 uppercase">
+              <div className="px-4 py-2 bg-[#1a2226] text-[10px] font-semibold tracking-wider text-[#4b646f] uppercase">
                 {group.title}
               </div>
             )}
@@ -103,30 +106,29 @@ const Sidebar = ({ isCollapsed, onCollapse, onRequestLogout }) => {
                   key={item.id}
                   onClick={() => handleItemClick(item.id)}
                   title={isCollapsed ? item.label : undefined}
-                  className={`w-full flex items-center rounded-lg text-[13.5px] font-medium transition-all group relative ${
-                    isCollapsed ? 'justify-center p-2.5' : 'justify-between px-3 py-2.5'
+                  className={`w-full flex items-center text-[13.5px] transition-colors group relative border-l-[3px] ${
+                    isCollapsed ? 'justify-center py-3 px-2' : 'justify-between px-4 py-2.5'
                   } ${
                     isActive
-                      ? 'bg-white/[0.1] text-white shadow-sm'
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                      ? 'bg-[#1e282c] text-white font-semibold border-[#3c8dbc]'
+                      : 'border-transparent text-[#b8c7ce] hover:text-white hover:bg-[#1e282c]'
                   }`}
                 >
                   <div className={`flex items-center ${isCollapsed ? '' : 'gap-3 min-w-0'}`}>
                     <Icon
-                      className={`w-[18px] h-[18px] shrink-0 transition-colors ${
-                        isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-200'
+                      className={`w-4 h-4 shrink-0 ${
+                        isActive ? 'text-[#3c8dbc]' : 'text-[#8aa4af] group-hover:text-white'
                       }`}
                     />
                     {!isCollapsed && <span className="truncate">{item.label}</span>}
                   </div>
 
                   {!isCollapsed && isActive && (
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <ChevronRight className="w-3.5 h-3.5 text-[#8aa4af] shrink-0" />
                   )}
 
-                  {/* Tooltip on Collapsed */}
                   {isCollapsed && (
-                    <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-slate-700/60">
+                    <div className="absolute left-full ml-2 px-2.5 py-1 bg-[#1a2226] text-white text-xs font-medium rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 border border-slate-700">
                       {item.label}
                     </div>
                   )}
@@ -137,19 +139,19 @@ const Sidebar = ({ isCollapsed, onCollapse, onRequestLogout }) => {
         ))}
       </nav>
 
-      {/* Logout Footer Button */}
-      <div className="p-3 border-t border-white/[0.07] bg-[#171e2c]">
+      {/* Classic Logout Footer */}
+      <div className="border-t border-[#1a2226] bg-[#1a2226]">
         <button
           onClick={onRequestLogout}
           title={isCollapsed ? t('navLogout') : undefined}
-          className={`w-full flex items-center rounded-lg text-[13.5px] font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors group relative ${
-            isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2.5'
+          className={`w-full flex items-center text-[13.5px] font-medium text-rose-400 hover:text-rose-300 hover:bg-[#1e282c] transition-colors group relative ${
+            isCollapsed ? 'justify-center py-3' : 'gap-3 px-4 py-3'
           }`}
         >
-          <LogOut className="w-[18px] h-[18px] shrink-0 text-rose-400" />
+          <LogOut className="w-4 h-4 shrink-0" />
           {!isCollapsed && <span>{t('navLogout')}</span>}
           {isCollapsed && (
-            <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-rose-900 text-rose-100 text-xs font-medium rounded-lg shadow-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+            <div className="absolute left-full ml-2 px-2.5 py-1 bg-rose-900 text-rose-100 text-xs font-medium rounded shadow-lg opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
               {t('navLogout')}
             </div>
           )}

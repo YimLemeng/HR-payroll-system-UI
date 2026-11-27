@@ -13,6 +13,26 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 
+const toIsoDate = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+const getCurrentWeekDates = (refDate = new Date()) => {
+  const dayOfWeek = refDate.getDay(); // 0=Sun..6=Sat
+  const diffToMon = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(refDate);
+  monday.setDate(refDate.getDate() + diffToMon);
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  return dayNames.map((label, idx) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + idx);
+    return { day: label, iso: toIsoDate(d) };
+  });
+};
+
 const DashboardPage = () => {
   const { t, lang } = useLanguage();
   const location = useLocation();
@@ -30,6 +50,9 @@ const DashboardPage = () => {
     monthlyPayroll: '$0.00',
   });
   const [pendingLeaves, setPendingLeaves] = useState([]);
+  const [employeesList, setEmployeesList] = useState([]);
+  const [approvedLeaves, setApprovedLeaves] = useState([]);
+  const [weekAttendance, setWeekAttendance] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -40,17 +63,34 @@ const DashboardPage = () => {
         const now = new Date();
         const month = now.getMonth() + 1;
         const year = now.getFullYear();
+        const weekDates = getCurrentWeekDates(now);
 
-        const [empSummaryRes, attendanceSummaryRes, payrollSummaryRes, headcountRes, leavesRes] =
-          await Promise.allSettled([
-            axiosClient.get('/reports/employees/summary'),
-            axiosClient.get(`/attendance/summary?month=${month}&year=${year}`),
-            axiosClient.get(`/reports/payroll/summary?month=${month}&year=${year}`),
-            axiosClient.get('/reports/departments/headcount'),
-            axiosClient.get('/leaves?status=PENDING&size=5'),
-          ]);
+        const [
+          empSummaryRes,
+          attendanceSummaryRes,
+          payrollSummaryRes,
+          headcountRes,
+          pendingLeavesRes,
+          employeesRes,
+          weekAttRes,
+          approvedLeavesRes,
+        ] = await Promise.allSettled([
+          axiosClient.get('/reports/employees/summary'),
+          axiosClient.get(`/attendance/summary?month=${month}&year=${year}`),
+          axiosClient.get(`/reports/payroll/summary?month=${month}&year=${year}`),
+          axiosClient.get('/reports/departments/headcount'),
+          axiosClient.get('/leaves?status=PENDING&size=5'),
+          axiosClient.get('/employees?size=1000'),
+          axiosClient.get(`/attendance?from=${weekDates[0].iso}&to=${weekDates[4].iso}&size=1000`),
+          axiosClient.get('/leaves?status=APPROVED&size=1000'),
+        ]);
 
         if (!isMounted) return;
+
+        const extractList = (res) =>
+          res.status === 'fulfilled'
+            ? res.value?.data?.content || (Array.isArray(res.value?.data) ? res.value.data : [])
+            : [];
 
         const empData =
           empSummaryRes.status === 'fulfilled' ? empSummaryRes.value?.data : null;
@@ -66,10 +106,10 @@ const DashboardPage = () => {
           headcountRes.status === 'fulfilled' && Array.isArray(headcountRes.value?.data)
             ? headcountRes.value.data
             : [];
-        const leaveList =
-          leavesRes.status === 'fulfilled'
-            ? leavesRes.value?.data?.content || (Array.isArray(leavesRes.value?.data) ? leavesRes.value.data : [])
-            : [];
+        const leaveList = extractList(pendingLeavesRes);
+        const allEmployees = extractList(employeesRes);
+        const weekAttRecords = extractList(weekAttRes);
+        const allApprovedLeaves = extractList(approvedLeavesRes);
 
         const totalEmp = Number(empData?.totalEmployees ?? 0);
         const activeEmp = Number(empData?.activeEmployees ?? 0);
@@ -105,6 +145,9 @@ const DashboardPage = () => {
           })}`,
         });
         setPendingLeaves(leaveList);
+        setEmployeesList(allEmployees);
+        setWeekAttendance(weekAttRecords);
+        setApprovedLeaves(allApprovedLeaves);
       } catch (err) {
         console.error('Error loading dashboard metrics from backend APIs:', err);
       } finally {
@@ -118,26 +161,49 @@ const DashboardPage = () => {
     };
   }, []);
 
-  // Trend chart data scaled to real totalEmployees
-  const baseHeadcount = Math.max(metrics.totalEmployees, 10);
+  // Real Trend chart data computed from employee hireDate & approved leaves
+  const buildTrendSeries = (daysStep, count) => {
+    const today = new Date();
+    const shortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const labels = [];
+    const headcount = [];
+    const leaves = [];
+
+    for (let i = count - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i * daysStep);
+      const iso = toIsoDate(d);
+
+      if (daysStep === 1) {
+        labels.push(i === 0 ? 'Now' : shortDays[d.getDay()]);
+      } else {
+        labels.push(i === 0 ? 'Now' : `${d.getDate()}/${d.getMonth() + 1}`);
+      }
+
+      const hc =
+        employeesList.length > 0
+          ? employeesList.filter((emp) => {
+              const joined = emp.hireDate || emp.createdAt?.slice(0, 10) || '1970-01-01';
+              return joined <= iso;
+            }).length
+          : metrics.totalEmployees;
+
+      const lvCount = approvedLeaves.filter((lv) => {
+        if (!lv.startDate || !lv.endDate) return false;
+        return lv.startDate <= iso && lv.endDate >= iso;
+      }).length;
+
+      headcount.push(hc);
+      leaves.push(i === 0 ? Math.max(lvCount, metrics.onLeave) : lvCount);
+    }
+
+    return { labels, headcount, leaves };
+  };
+
   const trendConfigs = {
-    '7d': {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      headcount: [0.92, 0.94, 0.95, 0.96, 0.98, 0.99, 1.0].map((m) => Math.round(baseHeadcount * m)),
-      leaves: [1, 2, 1, 0, 2, 1, metrics.onLeave],
-    },
-    '30d': {
-      labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'W9', 'W10', 'W11', 'Now'],
-      headcount: [0.85, 0.87, 0.88, 0.9, 0.91, 0.93, 0.94, 0.95, 0.97, 0.98, 0.99, 1.0].map((m) =>
-        Math.round(baseHeadcount * m)
-      ),
-      leaves: [2, 1, 3, 1, 2, 0, 2, 1, 1, 2, 1, metrics.onLeave],
-    },
-    '90d': {
-      labels: ['M1', 'M2', 'M3', 'M4', 'M5', 'M6'],
-      headcount: [0.76, 0.82, 0.88, 0.92, 0.96, 1.0].map((m) => Math.round(baseHeadcount * m)),
-      leaves: [3, 2, 4, 2, 1, metrics.onLeave],
-    },
+    '7d': buildTrendSeries(1, 7),
+    '30d': buildTrendSeries(4, 8),
+    '90d': buildTrendSeries(15, 7),
   };
 
   const activeTrend = trendConfigs[trendRange];
@@ -163,15 +229,21 @@ const DashboardPage = () => {
   const outerCirc = 2 * Math.PI * 66;
   const innerCirc = 2 * Math.PI * 48;
 
-  // Attendance This Week bar values
-  const weekRateBase = metrics.attendancePercent || 92;
-  const weekDays = [
-    { day: 'Mon', val: Math.min(100, Math.max(70, weekRateBase)) },
-    { day: 'Tue', val: Math.min(100, Math.max(68, weekRateBase - 3)) },
-    { day: 'Wed', val: Math.min(100, Math.max(74, weekRateBase + 2)) },
-    { day: 'Thu', val: Math.min(100, Math.max(70, weekRateBase - 1)) },
-    { day: 'Fri', val: Math.min(100, Math.max(65, weekRateBase - 5)) },
-  ];
+  // Real Attendance This Week bar values from /attendance?from=...&to=...
+  const PRESENT_STATUSES = new Set(['PRESENT', 'LATE', 'HALF_DAY']);
+  const weekDays = getCurrentWeekDates().map(({ day, iso }) => {
+    const presentEmpIds = new Set(
+      weekAttendance
+        .filter((rec) => rec.attendanceDate === iso && PRESENT_STATUSES.has(rec.status))
+        .map((rec) => rec.employeeId)
+    );
+    const count = presentEmpIds.size;
+    const val =
+      metrics.totalEmployees > 0
+        ? Math.min(100, Math.round((count / metrics.totalEmployees) * 100))
+        : 0;
+    return { day, iso, count, val };
+  });
 
   // Upcoming Events / Pending Leaves list (always top-aligned, 5 items)
   const leaveEvents = pendingLeaves.slice(0, 5).map((lv, idx) => ({
@@ -304,20 +376,20 @@ const DashboardPage = () => {
       {/* ROW 2: Headcount Trend (8 cols) + Department Breakdown Donut (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Headcount & Attendance Trend Chart */}
-        <div className="lg:col-span-8 bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h3 className="text-[15px] font-semibold text-slate-900">
+        <div className="lg:col-span-8 bg-white rounded border border-slate-300 border-t-[3px] border-t-[#3c8dbc] shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+          <div className="px-5 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-bold text-slate-800">
               {lang === 'km' ? 'និន្នាការបុគ្គលិក & ច្បាប់ឈប់សម្រាក' : 'Headcount Trend'}
             </h3>
 
-            <div className="inline-flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
+            <div className="inline-flex items-center bg-slate-100 p-0.5 rounded border border-slate-300">
               {['7d', '30d', '90d'].map((rng) => (
                 <button
                   key={rng}
                   onClick={() => setTrendRange(rng)}
-                  className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+                  className={`px-2.5 py-1 text-xs font-medium rounded transition-all ${
                     trendRange === rng
-                      ? 'bg-blue-600 text-white shadow-xs'
+                      ? 'bg-[#3c8dbc] text-white'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -326,6 +398,7 @@ const DashboardPage = () => {
               ))}
             </div>
           </div>
+          <div className="p-5 flex-1 flex flex-col justify-between">
 
           {/* Legend */}
           <div className="flex items-center justify-end gap-4 text-xs text-slate-600 mb-2">
@@ -390,7 +463,7 @@ const DashboardPage = () => {
                   (idx / Math.max(activeTrend.labels.length - 1, 1)) * (540 - 40);
                 return (
                   <text
-                    key={lbl}
+                    key={`${lbl}-${idx}`}
                     x={x}
                     y="180"
                     textAnchor="middle"
@@ -401,6 +474,7 @@ const DashboardPage = () => {
                 );
               })}
             </svg>
+          </div>
           </div>
         </div>
 
@@ -413,10 +487,13 @@ const DashboardPage = () => {
       {/* ROW 3: 3 Cards (Status Ring, Attendance This Week Bar Chart, Upcoming Events) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Card 1: Workforce Status Distribution (Concentric Radial Rings) */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
-          <h3 className="text-[15px] font-semibold text-slate-900 mb-3">
-            {lang === 'km' ? 'ស្ថានភាពបុគ្គលិកសរុប' : 'Workforce Distribution'}
-          </h3>
+        <div className="bg-white rounded border border-slate-300 border-t-[3px] border-t-[#3c8dbc] shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+          <div className="px-5 py-3 border-b border-slate-200">
+            <h3 className="text-sm font-bold text-slate-800">
+              {lang === 'km' ? 'ស្ថានភាពបុគ្គលិកសរុប' : 'Workforce Distribution'}
+            </h3>
+          </div>
+          <div className="p-5 flex-1 flex flex-col justify-between">
 
           <div className="relative w-52 h-52 mx-auto my-2 flex items-center justify-center">
             <svg viewBox="0 0 180 180" className="w-full h-full">
@@ -471,22 +548,28 @@ const DashboardPage = () => {
               <span>{t('statusOnLeave')} ({metrics.onLeave})</span>
             </div>
           </div>
+          </div>
         </div>
 
         {/* Card 2: Attendance This Week (Emerald Vertical Bar Chart) */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[15px] font-semibold text-slate-900">
+        <div className="bg-white rounded border border-slate-300 border-t-[3px] border-t-[#00a65a] shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+          <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-800">
               {lang === 'km' ? 'វត្តមានប្រចាំសប្តាហ៍' : 'Attendance This Week'}
             </h3>
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
               {metrics.attendanceRate}
             </span>
           </div>
+          <div className="p-5">
 
           <div className="h-52 flex items-end justify-between gap-3 pt-6 pb-2 px-3 border-b border-slate-100 relative">
             {weekDays.map((item) => (
-              <div key={item.day} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+              <div
+                key={item.day}
+                title={`${item.iso}: ${item.count}/${metrics.totalEmployees} (${item.val}%)`}
+                className="flex-1 flex flex-col items-center gap-2 h-full justify-end"
+              >
                 <span className="text-[10px] font-semibold text-slate-400">
                   {item.val}%
                 </span>
@@ -500,17 +583,18 @@ const DashboardPage = () => {
               </div>
             ))}
           </div>
+          </div>
         </div>
 
         {/* Card 3: Upcoming Events & Pending Requests */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[15px] font-semibold text-slate-900">
+        <div className="bg-white rounded border border-slate-300 border-t-[3px] border-t-[#f39c12] shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col">
+          <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-slate-800">
               {lang === 'km' ? 'ព្រឹត្តិការណ៍ & សំណើបន្ទាប់' : 'Upcoming Events'}
             </h3>
           </div>
 
-          <div className="divide-y divide-slate-100 flex-1 flex flex-col">
+          <div className="p-4 divide-y divide-slate-200 flex-1 flex flex-col">
             {eventItems.map((ev) => (
               <button
                 key={ev.id}

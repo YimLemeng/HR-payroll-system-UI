@@ -161,10 +161,10 @@ const RecentActivities = () => {
   const displayed = sortedFiltered.slice(startIdx, startIdx + rowsPerPage);
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] overflow-hidden">
+    <div className="bg-white rounded border border-slate-300 border-t-[3px] border-t-[#3c8dbc] shadow-[0_1px_2px_rgba(0,0,0,0.05)] overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-        <h3 className="text-[15px] font-semibold text-slate-900">
+      <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-white">
+        <h3 className="text-sm font-bold text-slate-800">
           {t('recentActivityTitle')}
         </h3>
       </div>

@@ -94,17 +94,16 @@ const DepartmentChart = () => {
     });
 
   return (
-    <div className="bg-white rounded-xl p-5 border border-slate-200/80 shadow-[0_1px_3px_rgba(15,23,42,0.04)] flex flex-col justify-between h-full min-h-[340px]">
-      <div className="flex items-center justify-between mb-2">
-        <div>
-          <h3 className="text-[15px] font-semibold text-slate-900">
-            {t('deptDistributionTitle')}
-          </h3>
-        </div>
-        <span className="text-xs font-medium px-2.5 py-1 bg-slate-100 text-slate-600 rounded-md">
+    <div className="bg-white rounded border border-slate-300 border-t-[3px] border-t-[#3c8dbc] shadow-[0_1px_2px_rgba(0,0,0,0.05)] flex flex-col justify-between h-full min-h-[340px]">
+      <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-slate-800">
+          {t('deptDistributionTitle')}
+        </h3>
+        <span className="text-xs font-semibold px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-600 rounded">
           {totalHeadcount} {t('staffCount')}
         </span>
       </div>
+      <div className="p-4 flex-1 flex flex-col justify-center">
 
       {isLoading ? (
         <div className="py-16 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
@@ -175,6 +174,7 @@ const DepartmentChart = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

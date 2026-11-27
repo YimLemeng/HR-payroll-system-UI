@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
 import axiosClient from '../api/axiosClient';
@@ -206,7 +207,7 @@ const ReportsPage = () => {
             {t('reportsTitle')}
           </h1>
           <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
-            <span>{t('navDashboard')}</span>
+            <Link to="/dashboard" className="hover:text-[#3c8dbc] hover:underline transition-colors">{t('navDashboard')}</Link>
             <span>/</span>
             <span>{lang === 'km' ? 'ប្រាក់បៀវត្ស & របាយការណ៍' : 'Payroll & Reports'}</span>
             <span>/</span>

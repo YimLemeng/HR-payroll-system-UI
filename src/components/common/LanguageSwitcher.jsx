@@ -5,14 +5,27 @@ import { Globe } from 'lucide-react';
 const LanguageSwitcher = ({ className = '', variant = 'pill' }) => {
   const { lang, setLanguage } = useLanguage();
 
+  if (variant === 'navbar') {
+    return (
+      <button
+        onClick={() => setLanguage(lang === 'km' ? 'en' : 'km')}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded text-white bg-white/15 hover:bg-white/25 border border-white/20 transition-all ${className}`}
+        title="Switch Language / ប្តូរភាសា"
+      >
+        <Globe className="w-3.5 h-3.5 text-white" />
+        <span>{lang === 'km' ? '🇰🇭 ខ្មែរ' : '🇬🇧 EN'}</span>
+      </button>
+    );
+  }
+
   if (variant === 'simple') {
     return (
       <button
         onClick={() => setLanguage(lang === 'km' ? 'en' : 'km')}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 transition-all ${className}`}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded text-slate-700 bg-[#f4f4f4] hover:bg-[#e7e7e7] border border-slate-300 transition-all ${className}`}
         title="Switch Language / ប្តូរភាសា"
       >
-        <Globe className="w-3.5 h-3.5 text-blue-600" />
+        <Globe className="w-3.5 h-3.5 text-[#3c8dbc]" />
         <span>{lang === 'km' ? '🇰🇭 ខ្មែរ' : '🇬🇧 EN'}</span>
       </button>
     );
